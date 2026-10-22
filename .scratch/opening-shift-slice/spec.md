@@ -207,6 +207,7 @@ Real Node is the judge: a local check runs the program on Node 24 and fails if t
 ## Further Notes
 
 - **Measured on Node 24.19.0:** as CommonJS, 20 runs out of 20 printed `A F E D C B`. As ESM, it printed `A F D E` before B and C. This is why ADR 0003 exists, and why the simulator's 50/50 race doesn't try to match real-world frequencies.
+- **Playtest URL:** https://agustinzago.github.io/node-kitchen/
 - **Playtest gate (not a code task):** 5 playtesters take a 3-question before/after "predict the output" quiz on a new but similar program, written with `/to-questionnaire`. It doubles as the first baseline for the PRD's learning metric.
 - **Vocabulary:** see `CONTEXT.md`. Decisions: ADRs 0001–0003. Rendering API facts: `docs/research/threejs-toon-webgpu.md`.
 - **Open questions in the PRD that don't block the slice:** the OpenJS name check, and the first-load download budget (to be set after the slice).

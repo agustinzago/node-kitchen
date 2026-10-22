@@ -8,5 +8,6 @@
 
 - [x] The user approved enabling Pages
 - [ ] The Pages URL loads the slice, and the boss Shift is playable end to end there, including on a browser without WebGPU
-- [ ] The URL is recorded in the spec's Further Notes for the playtest
+  - Note: the live site was checked to load and show the pre-service card under forced WebGL 2. A full Shift was not played on the live site.
+- [x] The URL is recorded in the spec's Further Notes for the playtest
 - [x] The check command passes before publishing
