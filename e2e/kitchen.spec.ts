@@ -1,4 +1,5 @@
 import { expect, test, type Page } from '@playwright/test';
+import { seedFor } from '../src/sim/shift.ts';
 
 const chef = (page: Page) => page.evaluate(() => window.__kitchen!.chef());
 
@@ -99,8 +100,8 @@ const ticketLabel = (page: Page, ticket: string) => page.locator(`.ticket-label[
 
 // The seed-0 run predicts the other race order: either one earns the bonus star.
 for (const { seed, ovenReady, expected, prediction } of [
-  { seed: 1, ovenReady: true, expected: ['A', 'F', 'E', 'D', 'B', 'C'], prediction: null },
-  { seed: 0, ovenReady: false, expected: ['A', 'F', 'E', 'D', 'C', 'B'], prediction: ['A', 'F', 'E', 'D', 'B', 'C'] },
+  { seed: seedFor(true), ovenReady: true, expected: ['A', 'F', 'E', 'D', 'B', 'C'], prediction: null },
+  { seed: seedFor(false), ovenReady: false, expected: ['A', 'F', 'E', 'D', 'C', 'B'], prediction: ['A', 'F', 'E', 'D', 'B', 'C'] },
 ]) {
   test(`plays the boss Shift by keyboard, Oven ${ovenReady ? 'ready' : 'not ready'} on Lap 1 (seed ${seed})`, async ({
     page,
@@ -219,7 +220,7 @@ test('X-ray is on at the start and X toggles it', async ({ page }) => {
 });
 
 test('the Replay explains a rule 2 break', async ({ page }) => {
-  await page.goto('/?seed=1');
+  await page.goto(`/?seed=${seedFor(true)}`);
   await page.waitForFunction(() => window.__kitchen);
   await skipPrediction(page);
   for (const station of ['stove', 'stove', 'oven', 'stove', 'checkCounter', 'stove', 'purpleRail', 'stove', 'orangeRail', 'stove'] as const) {

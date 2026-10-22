@@ -62,6 +62,9 @@ const RING: Station[] = ['oven', 'checkCounter'];
 // misses the first Lap without the start-up cost. Revisit when a Shift races timers differently.
 const TURNS_PER_MS = 10;
 
+/** A seed that makes a 0 ms timer ready on the first Lap, or not: for tests and bug reports. */
+export const seedFor = (ovenReadyOnLap1: boolean): number => (ovenReadyOnLap1 ? 1 : 0);
+
 /** An odd seed pays a 1 ms start-up cost, which makes a 0 ms timer ready on the first Lap. */
 export function startShift(level: Level, seed: number): Shift {
   return {

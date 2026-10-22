@@ -6,10 +6,13 @@ import { readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import type { Level } from '../src/sim/level.ts';
-import { act, followKitchenRules, receipt, startShift } from '../src/sim/shift.ts';
+import { act, followKitchenRules, receipt, seedFor, startShift } from '../src/sim/shift.ts';
 
-// The seed's only job is the Oven race: an even seed leaves a 0 ms timer not ready on the first Lap.
-const SEED_OUTCOMES = { 'the Oven not ready on the first Lap': 0, 'the Oven ready on the first Lap': 1 };
+// The seed's only job is the Oven race.
+const SEED_OUTCOMES = {
+  'the Oven not ready on the first Lap': seedFor(false),
+  'the Oven ready on the first Lap': seedFor(true),
+};
 
 /** Returns the problems found; an empty list means the level agrees with Node. */
 export function checkLevel(level: Level, levelDir: string, runs = 20): string[] {

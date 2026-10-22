@@ -13,6 +13,7 @@ import {
   predict,
   receipt,
   routingMistakes,
+  seedFor,
   startShift,
   waitingTickets,
   waitsAt,
@@ -22,9 +23,8 @@ import {
   type Station,
 } from './shift.ts';
 
-// An odd seed pays the start-up cost, so the Oven's 0 ms timer is ready on the first Lap.
-const ovenReady = 1;
-const ovenNotReady = 0;
+const ovenReady = seedFor(true);
+const ovenNotReady = seedFor(false);
 
 const cook: Action = { type: 'cook' };
 const route = (station: Station): Action => ({ type: 'route', station });
