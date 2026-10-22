@@ -27,6 +27,11 @@
       #closed span { padding: 18px 40px; font: 700 48px/1 system-ui, sans-serif; letter-spacing: 0.1em; background: #c62828; color: #fffaf0; border: 4px solid #fffaf0; border-radius: 10px; transform: rotate(-4deg); }
       .closed #closed { display: grid; }
       .ticket-label { transform: translate(-50%, -100%); padding: 1px 6px; border-radius: 4px; background: #fffaf0e6; font: 600 13px ui-monospace, Menlo, Consolas, monospace; white-space: nowrap; }
+      .station-label { position: fixed; pointer-events: none; transform: translate(-50%, 4px); display: flex; flex-direction: column; align-items: center; padding: 1px 6px; border-radius: 4px; background: #2a2118cc; color: #fffaf0; font: 600 12px/1.3 system-ui, sans-serif; white-space: nowrap; }
+      .station-label .xray { font: 600 11px ui-monospace, Menlo, Consolas, monospace; color: #9fe3ff; }
+      .station-label[data-station="o"] { transform: translate(-100%, -50%); }
+      .station-label[data-station="p"] { transform: translate(0, -50%); }
+      .xray-off .station-label .xray { display: none; }
     </style>
   </head>
   <body>

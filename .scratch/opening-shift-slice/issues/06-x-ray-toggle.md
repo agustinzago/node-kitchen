@@ -4,10 +4,10 @@
 
 **Blocked by:** 04 (Play the boss Shift in the kitchen)
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] Every station in the slice, including the greyed-out Counters, has a kitchen name and a real Node name
-- [ ] Labels stay attached to their stations when the window is resized
-- [ ] X-ray is on when the Shift starts, and one key toggles it
-- [ ] A Playwright check toggles X-ray and asserts that a known label ("timers phase") appears and disappears
-- [ ] The check command passes
+- [x] Every station in the slice, including the greyed-out Counters, has a kitchen name and a real Node name
+- [x] Labels stay attached to their stations when the window is resized
+- [x] X-ray is on when the Shift starts, and one key toggles it
+- [x] A Playwright check toggles X-ray and asserts that a known label ("timers phase") appears and disappears
+- [x] The check command passes

@@ -145,3 +145,16 @@ for (const { seed, ovenReady, expected } of [
     await expect(page.locator('#closed')).toBeVisible();
   });
 }
+
+test('X-ray is on at the start and X toggles it', async ({ page }) => {
+  await page.goto('/');
+  await page.waitForFunction(() => window.__kitchen);
+  const oven = page.locator('.station-label[data-station="O"]');
+  await expect(page.locator('.station-label')).toHaveCount(8);
+  await expect(oven.getByText('timers phase')).toBeVisible();
+  await page.keyboard.press('KeyX');
+  await expect(oven.getByText('timers phase')).toBeHidden();
+  await expect(oven).toContainText('Oven');
+  await page.keyboard.press('KeyX');
+  await expect(oven.getByText('timers phase')).toBeVisible();
+});

@@ -252,11 +252,42 @@ function placeTickets() {
   for (const [dish, label] of ticketLabels) {
     label.hidden = !shown.has(dish);
     if (label.hidden) continue;
-    const ndc = ticketMeshes.get(dish)!.position.clone().add(new THREE.Vector3(0, 0.35, 0)).project(camera);
-    label.style.left = `${((ndc.x + 1) / 2) * innerWidth}px`;
-    label.style.top = `${((1 - ndc.y) / 2) * innerHeight}px`;
+    pin(label, ticketMeshes.get(dish)!.position.clone().add(new THREE.Vector3(0, 0.35, 0)));
   }
 }
+
+/** Places an overlay label at a 3D point's spot on screen. */
+function pin(label: HTMLElement, at: THREE.Vector3) {
+  const ndc = at.project(camera);
+  label.style.left = `${((ndc.x + 1) / 2) * innerWidth}px`;
+  label.style.top = `${((1 - ndc.y) / 2) * innerHeight}px`;
+}
+
+// Station labels: the kitchen name, plus the real Node name while X-ray is on (X toggles it).
+const NODE_NAMES: Record<string, string> = {
+  S: 'call stack',
+  o: 'nextTick queue',
+  p: 'microtask queue',
+  O: 'timers phase',
+  P: 'pending callbacks phase',
+  L: 'poll phase',
+  C: 'check phase',
+  H: 'close callbacks phase',
+};
+const stationLabels = Object.entries(STATIONS).map(([code, { name }]) => {
+  const label = document.createElement('span');
+  label.className = 'station-label';
+  label.dataset.station = code;
+  label.append(name, Object.assign(document.createElement('b'), { className: 'xray', textContent: NODE_NAMES[code] }));
+  $('labels').append(label);
+  // Under the station's front edge; the Rails' labels sit on their outer sides, clear of the Stove's.
+  const side = code === 'o' ? -1 : code === 'p' ? 1 : 0;
+  return { label, at: find(code).add(new THREE.Vector3(side * 0.45, 0, 0.45)) };
+});
+const placeStationLabels = () => stationLabels.forEach(({ label, at }) => pin(label, at.clone()));
+addEventListener('keydown', (e) => {
+  if (e.code === 'KeyX' && !e.repeat) document.body.classList.toggle('xray-off');
+});
 
 function updateOverlay() {
   const stove = dishOnStove(shift);
@@ -399,6 +430,7 @@ renderer.setAnimationLoop((now) => {
   last = now;
   shake(now);
   placeTickets();
+  placeStationLabels();
   glow.opacity = 0.45 + 0.2 * Math.sin(now / 150);
   pipeline.render();
 });
