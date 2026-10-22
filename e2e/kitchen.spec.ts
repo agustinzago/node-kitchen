@@ -151,6 +151,13 @@ for (const { seed, ovenReady, expected } of [
     await expect(page.locator('#broken-rules')).toHaveText('No Kitchen rules broken.');
     await expect(page.locator('#result-mistakes')).toHaveText('1');
 
+    // The Replay notes the race only when the Oven wasn't ready on Lap 1, even on a correct Shift.
+    await page.locator('#open-replay').click();
+    await page.locator('#replay-next').evaluate((next: HTMLButtonElement) => { while (!next.disabled) next.click(); });
+    await expect(page.locator('.replay-note.race')).toHaveCount(ovenReady ? 0 : 1);
+    await expect(page.locator('.replay-note.race')).toHaveText(ovenReady ? [] : [/can't promise setTimeout's B before setImmediate's C/]);
+    await page.locator('#replay-close').click();
+
     // Retry restarts the Shift; the URL keeps the seed fixed.
     await page.keyboard.press('Enter');
     await expect(page.locator('#results')).toHaveCount(0);
@@ -170,4 +177,39 @@ test('X-ray is on at the start and X toggles it', async ({ page }) => {
   await expect(oven).toContainText('Oven');
   await page.keyboard.press('KeyX');
   await expect(oven.getByText('timers phase')).toBeVisible();
+});
+
+test('the Replay explains a rule 2 break', async ({ page }) => {
+  await page.goto('/?seed=1');
+  await page.waitForFunction(() => window.__kitchen);
+  for (const station of ['stove', 'stove', 'oven', 'stove', 'checkCounter', 'stove', 'purpleRail', 'stove', 'orangeRail', 'stove'] as const) {
+    await use(page, station);
+  }
+  // Rule 2 on purpose: the purple Rail before the orange one.
+  for (const station of ['purpleRail', 'stove', 'orangeRail', 'stove', 'oven', 'stove', 'checkCounter', 'stove'] as const) {
+    await use(page, station);
+  }
+  await expect(page.locator('#receipt li')).toHaveText(['A', 'F', 'D', 'E', 'B', 'C']);
+
+  await page.locator('#open-replay').click();
+  await expect(page.locator('#replay-step')).toHaveText('Step 1 of 18: Cooked line 1: printed A');
+  await expect(page.locator('#program li.replay-line')).toHaveText("console.log('A');");
+  await page.locator('#replay-next').click();
+  await expect(page.locator('#program li.replay-line')).toHaveText("setTimeout(() => console.log('B'), 0);");
+  await page.locator('#replay-back').click();
+  await expect(page.locator('#program li.replay-line')).toHaveText("console.log('A');");
+
+  // Play pauses at the first wrong line, D, and explains it.
+  await page.locator('#replay-play').click();
+  await expect(page.locator('#replay-step')).toHaveText('Step 12 of 18: Cooked line 4: printed D', { timeout: 10_000 });
+  await page.waitForTimeout(700);
+  await expect(page.locator('#replay-step')).toContainText('Step 12 of 18');
+  await expect(page.locator('#program li.replay-line')).toHaveText("Promise.resolve().then(() => console.log('D'));");
+  const rule = page.locator('.replay-note.rule-2');
+  await expect(rule).toHaveText(/Node ran D's Promise.then callback while the nextTick queue still had E's/);
+  await expect(page.locator('.replay-note.node-line')).toContainText('Real Node printed E here, not D.');
+  // X-ray off: kitchen words.
+  await page.keyboard.press('KeyX');
+  await expect(rule.locator('.say-kitchen')).toHaveText(/^You cooked D while the orange rail still had E\./);
+  await expect(rule.locator('.say-node')).toBeHidden();
 });

@@ -1,5 +1,6 @@
 // The results screen, shown once the restaurant closes: the Receipt judged against real Node.
 import './results.css';
+import { openReplay } from './replay.ts';
 import { judge, receipt, type Shift } from './sim/shift.ts';
 
 const RULES = {
@@ -51,6 +52,8 @@ export function showResults(shift: Shift) {
           : [el('li', { textContent: 'No Kitchen rules broken.' })]),
       ),
       el('p', {}, 'Routing mistakes: ', el('b', { id: 'result-mistakes', textContent: String(routingMistakes) })),
+      el('button', { id: 'open-replay', textContent: 'Replay', onclick: () => openReplay(shift), onkeydown: (e) => e.stopPropagation() }),
+      ' ',
       retry,
     ),
   );
