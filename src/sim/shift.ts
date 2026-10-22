@@ -103,7 +103,7 @@ export function act(shift: Shift, action: Action): { shift: Shift; events: Shift
   if (action.type === 'route') {
     const ticket = s.held;
     if (!ticket) return refuse('handsEmpty');
-    if (STATION_FOR_KIND[s.level.tickets[ticket].kind] !== action.station) {
+    if (waitsAt(s, ticket) !== action.station) {
       s.routingMistakes++;
       return { shift: s, events: [{ type: 'ticketRefused', ticket, station: action.station }] };
     }
@@ -184,6 +184,8 @@ function ruleBreaks(s: Shift, station: Station, ticket: TicketId): ShiftEvent[] 
 }
 
 export const heldTicket = (s: Shift): TicketId | null => s.held;
+/** The Rail or Counter where a Ticket waits, by its Ticket kind. */
+export const waitsAt = (s: Shift, ticket: TicketId): Station => STATION_FOR_KIND[s.level.tickets[ticket].kind];
 export const receipt = (s: Shift): string[] => s.receipt;
 export const lap = (s: Shift): number => s.lap;
 export const hasEnded = (s: Shift): boolean => s.ended;

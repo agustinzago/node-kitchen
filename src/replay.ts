@@ -3,9 +3,9 @@
 import './replay.css';
 import { el } from './el.ts';
 import { KITCHEN_RULES } from './preservice.ts';
-import type { TicketId, TicketKind } from './sim/level.ts';
+import type { TicketId } from './sim/level.ts';
 import { replayTimeline, type ReplayStep } from './sim/replay.ts';
-import { dishOnStove, heldTicket, judge, receipt, waitingTickets, type Shift, type Station } from './sim/shift.ts';
+import { dishOnStove, heldTicket, judge, receipt, waitingTickets, waitsAt, type Shift, type Station } from './sim/shift.ts';
 
 /** Each station's kitchen name and real Node name. */
 const NAMES: Record<Station, [string, string]> = {
@@ -14,17 +14,12 @@ const NAMES: Record<Station, [string, string]> = {
   oven: ['Oven', 'timers phase'],
   checkCounter: ['Check counter', 'check phase'],
 };
-const WAITS_AT: Record<TicketKind, Station> = {
-  nextTick: 'orangeRail',
-  microtask: 'purpleRail',
-  timer: 'oven',
-  immediate: 'checkCounter',
-};
-const API: Record<TicketKind, string> = {
-  nextTick: 'process.nextTick',
-  microtask: 'Promise.then',
-  timer: 'setTimeout',
-  immediate: 'setImmediate',
+/** The API that schedules a Ticket waiting at each station. */
+const API: Record<Station, string> = {
+  orangeRail: 'process.nextTick',
+  purpleRail: 'Promise.then',
+  oven: 'setTimeout',
+  checkCounter: 'setImmediate',
 };
 const PLAY_MS = 300;
 
@@ -32,8 +27,8 @@ const PLAY_MS = 300;
 type Note = { at: number; id: string; kitchen: string; node: string };
 
 function notes(shift: Shift, steps: ReplayStep[]): { pause: number; notes: Note[] } {
-  const api = (t: TicketId) => API[shift.level.tickets[t]!.kind];
-  const at = (t: TicketId) => NAMES[WAITS_AT[shift.level.tickets[t]!.kind]];
+  const api = (t: TicketId) => API[waitsAt(shift, t)];
+  const at = (t: TicketId) => NAMES[waitsAt(shift, t)];
   const found: Note[] = [];
   const { firstWrongLine, routingMistakes } = judge(shift);
 

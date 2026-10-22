@@ -17,6 +17,7 @@ import {
   routingMistakes,
   startShift,
   waitingTickets,
+  waitsAt,
   type Action,
   type Dish,
   type ShiftEvent,
@@ -151,12 +152,6 @@ const COLOUR_NAME: Record<Kind, string> = {
   microtask: 'purple',
   timer: 'blue',
   immediate: 'amber',
-};
-const WAITS_AT: Record<TicketKind, SimStation> = {
-  nextTick: 'orangeRail',
-  microtask: 'purpleRail',
-  timer: 'oven',
-  immediate: 'checkCounter',
 };
 
 const center = new THREE.Vector3((LAYOUT[0]!.length - 1) / 2, 0, (LAYOUT.length - 1) / 2);
@@ -346,9 +341,8 @@ function use() {
   shift = result.shift;
   for (const event of result.events) {
     if (event.type === 'ticketRefused') {
-      const kind = level.tickets[event.ticket]!.kind;
-      const right = STATIONS[codeOf(WAITS_AT[kind])]!.name;
-      say(`Buzz! The ${station.name} refuses ${event.ticket}: ${COLOUR_NAME[kind]} Tickets wait at the ${right}.`, code);
+      const right = STATIONS[codeOf(waitsAt(shift, event.ticket))]!.name;
+      say(`Buzz! The ${station.name} refuses ${event.ticket}: ${COLOUR_NAME[kindOf(event.ticket)]} Tickets wait at the ${right}.`, code);
     } else if (event.type === 'actionRefused') {
       const notYet = event.reason === 'nothingReady' && waitingTickets(shift).oven.length && code === 'O';
       say(notYet ? 'The Oven isn’t ready yet: come back next Lap.' : REFUSALS[event.reason], code);

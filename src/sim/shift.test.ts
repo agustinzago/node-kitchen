@@ -14,6 +14,7 @@ import {
   routingMistakes,
   startShift,
   waitingTickets,
+  waitsAt,
   type Action,
   type Shift,
   type ShiftEvent,
@@ -165,6 +166,7 @@ describe('Routing to the wrong station', () => {
     expect(routingMistakes(after)).toBe(1);
     expect(heldTicket(after)).toBe('B');
     expect(waitingTickets(after).checkCounter).toEqual([]);
+    expect(waitsAt(after, 'B')).toBe('oven');
   });
 });
 
