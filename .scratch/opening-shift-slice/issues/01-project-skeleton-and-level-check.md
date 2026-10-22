@@ -4,13 +4,13 @@
 
 **Blocked by:** None (can start immediately).
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] One pnpm package with Vite, TypeScript, Vitest and Playwright installed; Node 24 pinned through `engines` and `.nvmrc`
-- [ ] A folder for the simulator exists, with an enforced rule that it never imports `three`, the DOM or renderer code
-- [ ] A single check command runs typecheck, Vitest, the level check and Playwright, in that order (Playwright can be an empty pass for now)
-- [ ] The boss program and its level file exist, using the vocabulary in `CONTEXT.md`
-- [ ] The level check passes on the real boss level
-- [ ] The level check fails, with a clear message, when a level's Accepted outputs don't include what Node printed (tested with a deliberately wrong fixture)
-- [ ] The level check fails when a program file isn't `.cjs`
-- [ ] The level check doesn't require every Accepted output to be observed
+- [x] One pnpm package with Vite, TypeScript, Vitest and Playwright installed; Node 24 pinned through `engines` and `.nvmrc`
+- [x] A folder for the simulator exists, with an enforced rule that it never imports `three`, the DOM or renderer code
+- [x] A single check command runs typecheck, Vitest, the level check and Playwright, in that order (Playwright can be an empty pass for now)
+- [x] The boss program and its level file exist, using the vocabulary in `CONTEXT.md`
+- [x] The level check passes on the real boss level
+- [x] The level check fails, with a clear message, when a level's Accepted outputs don't include what Node printed (tested with a deliberately wrong fixture)
+- [x] The level check fails when a program file isn't `.cjs`
+- [x] The level check doesn't require every Accepted output to be observed
