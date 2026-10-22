@@ -4,7 +4,8 @@ import './preservice.css';
 import { el } from './el.ts';
 import type { Level } from './sim/level.ts';
 
-const KITCHEN_RULES = [
+/** The one wording of the Kitchen rules, for the card, the wall, the results and the Replay. */
+export const KITCHEN_RULES = [
   'One Dish at a time, to the end.',
   'After every Dish, clear the orange then the purple Rail until both are empty.',
   'Then walk the Ring.',

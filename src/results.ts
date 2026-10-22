@@ -1,13 +1,9 @@
 // The results screen, shown once the restaurant closes: the Receipt judged against real Node.
 import './results.css';
 import { el } from './el.ts';
+import { KITCHEN_RULES } from './preservice.ts';
 import { openReplay } from './replay.ts';
 import { judge, receipt, type Shift } from './sim/shift.ts';
-
-const RULES = {
-  2: 'Rule 2 broken: after every Dish, clear the orange then the purple Rail.',
-  3: 'Rule 3 broken: then walk the Ring in order.',
-};
 
 const BONUS: Record<string, string> = {
   true: '★ Bonus star: your Prediction matches real Node',
@@ -50,7 +46,7 @@ export function showResults(shift: Shift) {
         'ul',
         { id: 'broken-rules' },
         ...(brokenRules.length
-          ? brokenRules.map((r) => el('li', { textContent: RULES[r] }))
+          ? brokenRules.map((r) => el('li', { textContent: `Rule ${r} broken: ${KITCHEN_RULES[r - 1]}` }))
           : [el('li', { textContent: 'No Kitchen rules broken.' })]),
       ),
       el('p', {}, 'Routing mistakes: ', el('b', { id: 'result-mistakes', textContent: String(routingMistakes) })),

@@ -2,6 +2,7 @@
 // at the first wrong Receipt line and explains it, in kitchen words or, with X-ray, in Node's.
 import './replay.css';
 import { el } from './el.ts';
+import { KITCHEN_RULES } from './preservice.ts';
 import type { TicketId, TicketKind } from './sim/level.ts';
 import { replayTimeline, type ReplayStep } from './sim/replay.ts';
 import { dishOnStove, heldTicket, judge, receipt, waitingTickets, type Shift, type Station } from './sim/shift.ts';
@@ -48,7 +49,7 @@ function notes(shift: Shift, steps: ReplayStep[]): { pause: number; notes: Note[
     found.push({
       at: pause,
       id: 'rule-2',
-      kitchen: `You cooked ${t} while the ${at(e)[0]} still had ${e}. After every Dish, clear the orange then the purple Rail.`,
+      kitchen: `You cooked ${t} while the ${at(e)[0]} still had ${e}. Rule 2: ${KITCHEN_RULES[1]}`,
       node: `Node ran ${t}'s ${api(t)} callback while the ${at(e)[1]} still had ${e}'s. After every callback Node drains the nextTick queue, then the microtask queue.`,
     });
   } else if (broken?.rule === 3) {
@@ -56,7 +57,7 @@ function notes(shift: Shift, steps: ReplayStep[]): { pause: number; notes: Note[
     found.push({
       at: pause,
       id: 'rule-3',
-      kitchen: `You cooked ${t} from the ${at(t)[0]} while the ${at(e)[0]} still had ${e} ready. Walk the Ring in order.`,
+      kitchen: `You cooked ${t} from the ${at(t)[0]} while the ${at(e)[0]} still had ${e} ready. Rule 3: ${KITCHEN_RULES[2]}`,
       node: `You ran ${t}'s ${api(t)} callback in the ${at(t)[1]} while the ${at(e)[1]} still had ${e}'s due. The event loop visits its phases in order.`,
     });
   }
