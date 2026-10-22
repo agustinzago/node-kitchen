@@ -6,7 +6,7 @@
 
 **Status:** ready-for-agent
 
-- [ ] The user approved enabling Pages
+- [x] The user approved enabling Pages
 - [ ] The Pages URL loads the slice, and the boss Shift is playable end to end there, including on a browser without WebGPU
 - [ ] The URL is recorded in the spec's Further Notes for the playtest
-- [ ] The check command passes before publishing
+- [x] The check command passes before publishing

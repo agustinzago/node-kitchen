@@ -9,7 +9,8 @@
   "scripts": {
     "typecheck": "tsc -p tsconfig.json && tsc -p src/sim/tsconfig.json",
     "test": "vitest run --exclude '.claude/**' --exclude 'e2e/**'",
-    "level-check": "node scripts/level-check.ts",
+    "build": "vite build",
+    "level-check":"node scripts/level-check.ts",
     "e2e": "playwright test --pass-with-no-tests",
     "check": "pnpm typecheck && pnpm test && pnpm level-check && pnpm e2e"
   },
