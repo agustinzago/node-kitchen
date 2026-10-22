@@ -171,6 +171,14 @@ export const lap = (s: Shift): number => s.lap;
 export const hasEnded = (s: Shift): boolean => s.ended;
 export const routingMistakes = (s: Shift): number => s.routingMistakes;
 
+/** The Dish on the Stove and the program line it cooks next, or null when the Stove is free. */
+export function dishOnStove(s: Shift): { dish: Dish; sourceLine: number } | null {
+  if (!s.stove) return null;
+  const { dish, cooked } = s.stove;
+  const sourceLine = dish === 'opening' ? s.level.openingDish[cooked]!.sourceLine : s.level.tickets[dish]!.sourceLine;
+  return { dish, sourceLine };
+}
+
 /** The Tickets waiting at each Rail and Counter; a countdown of 0 means ready. */
 export function waitingTickets(s: Shift): Record<Station, { ticket: TicketId; countdown: number }[]> {
   const at = (station: Station) => s.stations[station].map((ticket) => ({ ticket, countdown: countdown(s, ticket) }));

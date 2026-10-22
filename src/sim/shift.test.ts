@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import boss from '../shifts/opening-boss/level.ts';
 import {
   act,
+  dishOnStove,
   followKitchenRules,
   hasEnded,
   heldTicket,
@@ -87,6 +88,18 @@ describe('following the Kitchen rules', () => {
     expect(lap(shift)).toBe(2);
     expect(receipt(shift)).toEqual(['A', 'F', 'E', 'D', 'C', 'B']);
     expect(hasEnded(shift)).toBe(true);
+  });
+});
+
+describe('the Dish on the Stove', () => {
+  it('is the Opening dish at its next line, then nothing, then a picked-up Ticket at its source line', () => {
+    const start = startShift(boss, ovenReady);
+    expect(dishOnStove(start)).toEqual({ dish: 'opening', sourceLine: 1 });
+    expect(dishOnStove(play(start, [cook]).shift)).toEqual({ dish: 'opening', sourceLine: 2 });
+
+    const { shift: served } = play(start, openingDish);
+    expect(dishOnStove(served)).toBe(null);
+    expect(dishOnStove(play(served, [pickUp('orangeRail')]).shift)).toEqual({ dish: 'E', sourceLine: 5 });
   });
 });
 
