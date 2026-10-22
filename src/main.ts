@@ -3,6 +3,7 @@ import * as THREE from 'three/webgpu';
 import { toonOutlinePass } from 'three/tsl';
 import level from './shifts/opening-boss/level.ts';
 import program from './shifts/opening-boss/program.cjs?raw';
+import { showResults } from './results.ts';
 import type { TicketId, TicketKind } from './sim/level.ts';
 import {
   act,
@@ -303,6 +304,7 @@ function updateOverlay() {
     document.body.classList.add('closed');
     sun.intensity = 0.9;
     scene.background = new THREE.Color('#5a4d40');
+    showResults(shift);
   }
 }
 
