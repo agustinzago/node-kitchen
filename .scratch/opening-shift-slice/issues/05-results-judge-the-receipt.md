@@ -4,12 +4,12 @@
 
 **Blocked by:** 04 (Play the boss Shift in the kitchen)
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] Vitest: following the Kitchen rules earns star 1 for both race orders
-- [ ] Vitest: breaking rule 2 (cooking D before E) gives no star, and the first wrong line is reported with rule 2 and real Node's line at that point
-- [ ] Vitest: the routing-mistake count matches the number of refusals
-- [ ] The results screen shows the side-by-side Receipts, the red differences, the star, the broken rules and the mistake count
-- [ ] Retry rolls a new seed unless the URL fixed one
-- [ ] The Playwright runs from 04 now also assert star 1 on the results screen
-- [ ] The check command passes
+- [x] Vitest: following the Kitchen rules earns star 1 for both race orders
+- [x] Vitest: breaking rule 2 (cooking D before E) gives no star, and the first wrong line is reported with rule 2 and real Node's line at that point
+- [x] Vitest: the routing-mistake count matches the number of refusals
+- [x] The results screen shows the side-by-side Receipts, the red differences, the star, the broken rules and the mistake count
+- [x] Retry rolls a new seed unless the URL fixed one
+- [x] The Playwright runs from 04 now also assert star 1 on the results screen
+- [x] The check command passes

@@ -4,13 +4,13 @@
 
 **Blocked by:** 05 (Results: judge the Receipt)
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] The card lists every keyboard control and the three Kitchen rules in `CONTEXT.md` wording
-- [ ] The Kitchen rules are visible on the wall throughout the Shift
-- [ ] The predict board reorders by drag-and-drop and by keyboard alone
-- [ ] Skipping leaves no Prediction and no bonus star, without blocking service
-- [ ] The Prediction can't change after service starts
-- [ ] Vitest: a Prediction of `A F E D B C` or `A F E D C B` earns the bonus star whatever the actual race outcome; any other order doesn't
-- [ ] A Playwright run fills in a correct Prediction by keyboard and asserts the bonus star
-- [ ] The check command passes
+- [x] The card lists every keyboard control and the three Kitchen rules in `CONTEXT.md` wording
+- [x] The Kitchen rules are visible on the wall throughout the Shift
+- [x] The predict board reorders by drag-and-drop and by keyboard alone
+- [x] Skipping leaves no Prediction and no bonus star, without blocking service
+- [x] The Prediction can't change after service starts
+- [x] Vitest: a Prediction of `A F E D B C` or `A F E D C B` earns the bonus star whatever the actual race outcome; any other order doesn't
+- [x] A Playwright run fills in a correct Prediction by keyboard and asserts the bonus star
+- [x] The check command passes

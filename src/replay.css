@@ -1,0 +1,13 @@
+#replay { position: fixed; top: 50%; left: 50%; transform: translate(-30%, -50%); width: min(440px, calc(100vw - 32px)); pointer-events: auto; }
+#replay > :not(h2) { margin: 8px 12px; }
+#replay-step { font-weight: 600; }
+#replay-receipt { font: 14px/1.6 ui-monospace, Menlo, Consolas, monospace; }
+#replay-notes { padding-left: 1.2em; }
+.replay-note.rule-2, .replay-note.rule-3 { color: #c62828; font-weight: 600; }
+.replay-controls { display: flex; gap: 8px; }
+#replay button, #open-replay { font: 600 15px system-ui, sans-serif; padding: 6px 14px; border: 2px solid #2a2118; border-radius: 6px; background: #ffe066; cursor: pointer; }
+#replay button:disabled { opacity: 0.4; cursor: default; }
+#program li.replay-line { background: #9fe3ff; outline: 2px solid #3f7fd9; }
+/* X-ray picks the real Node names. */
+body:not(.xray-off) #replay .say-kitchen, .xray-off #replay .say-node { display: none; }
+body.replaying #results, body.replaying #closed { display: none; }

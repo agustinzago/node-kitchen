@@ -1,0 +1,17 @@
+#card, #predict { top: 50%; left: 50%; transform: translate(-50%, -50%); width: min(440px, calc(100vw - 32px)); pointer-events: auto; }
+#card > :not(h2), #predict > :not(h2) { margin: 10px 14px; }
+#card h3 { margin-bottom: 4px; font-size: 13px; }
+#card dl { display: grid; grid-template-columns: auto 1fr; gap: 6px 12px; align-items: baseline; }
+#card dd { margin: 0; }
+kbd { display: inline-block; margin-right: 3px; padding: 0 5px; border: 1.5px solid #2a2118; border-radius: 4px; background: #fff; font: 600 12px/1.5 ui-monospace, Menlo, Consolas, monospace; }
+.panel ol.rules { padding: 0 0 0 1.4em; font: 14px/1.5 system-ui, sans-serif; }
+#rules { left: 16px; bottom: 16px; max-width: 300px; transform: rotate(1deg); }
+#rules ol.rules { margin: 6px 10px 8px; }
+#predict-cards { display: grid; gap: 6px; padding: 0 0 0 1.8em; font: 600 16px ui-monospace, Menlo, Consolas, monospace; }
+#predict-cards li { padding: 4px 12px; border: 2px solid #2a2118; border-radius: 6px; background: #fff; cursor: grab; }
+#predict-cards li:focus { outline: 3px solid #e04a2f; outline-offset: 1px; }
+#predict-cards li.dragging { opacity: 0.4; }
+#card button, #predict button { font: 600 15px system-ui, sans-serif; padding: 6px 18px; border: 2px solid #2a2118; border-radius: 6px; background: #ffe066; cursor: pointer; }
+#predict .buttons { display: flex; gap: 10px; }
+#predict #skip-predict { background: #fffaf0; }
+#bonus-star { font-weight: 700; }

@@ -37,7 +37,7 @@ One scheduled callback, waiting at a Counter or on a Rail. Every Ticket has a Ti
 _Avoid_: Order, task, job
 
 **Ticket kind**:
-The colour, shape and icon of a Ticket, which says where it waits: grey sync, orange nextTick, purple microtask, blue timer, teal I/O, amber immediate, rose close, lime event bell.
+The colour, shape and icon of a Ticket, which says where it waits: orange nextTick, purple microtask, blue timer, teal I/O, amber immediate, rose close, lime event bell. Grey sync is not a Ticket kind, since sync code never waits: it is how the Opening dish and its printing lines look.
 
 **Dish**:
 One Ticket being cooked on the Stove, from pick-up to finish. A Dish may print Receipt lines and create new Tickets.

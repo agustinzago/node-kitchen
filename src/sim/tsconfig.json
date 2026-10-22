@@ -1,0 +1,10 @@
+// The simulator has no DOM and no Node globals: it must stay reusable by the Event Loop Lab (ADR 0002).
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "lib": ["es2024"],
+    "types": []
+  },
+  "include": ["."],
+  "exclude": ["**/*.test.ts"]
+}

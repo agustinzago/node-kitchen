@@ -137,7 +137,7 @@ Real Node is the judge: a local check runs the program on Node 24 and fails if t
   - **Act** on a Shift state with one logical action; returns the next state plus the events that happened: Receipt line printed, Ticket created, Ticket refused (routing mistake), Kitchen rule broken, Dish started, Dish finished, Lap advanced, restaurant closed.
   - **Queries** on a state: what the Head Chef holds, which Tickets wait where (each Rail, each Counter, with Oven countdowns), which actions are legal now, the Receipt so far, whether the Shift has ended, the judgement and the Replay timeline.
   - **Actions** are logical, never spatial: cook the next line of the current Dish; Route the held Ticket to a station; pick up a Ticket from a Rail or Counter to start a Dish. Walking never reaches the simulator.
-  - **Rule 1 is a wall.** Act refuses to start a Dish while one is cooking, and refuses an action other than cooking the next line while a Dish is on the Stove. Rules 2 and 3 can be broken: the action is accepted, the break is recorded as an event, and the Shift continues in the player's order.
+  - **Rule 1 is a wall.** Act refuses to start a Dish while one is cooking: while a Dish is on the Stove, the only actions allowed are cooking its next line and Routing the held Ticket. Rules 2 and 3 can be broken: the action is accepted, the break is recorded as an event, and the Shift continues in the player's order.
   - **Routing a Ticket to the wrong station is refused**, counted as a routing mistake, and leaves the Ticket in the Head Chef's hands.
   - **Rule 3 tracking.** The simulator tracks a Ring position for the current Lap. Picking up from a Counter that comes later in the Ring order, while an earlier Counter holds a ready Ticket, breaks rule 3.
   - **Time.** The clock is virtual and turn-based. Walking costs nothing; cooking a line and picking up a Ticket advance it. The Opening dish has a start-up cost chosen from the seed, so that on the first Lap the `setTimeout(0)` Ticket is ready with 50% probability. A Ticket that isn't ready stays in the Oven until a later Lap.
@@ -207,6 +207,7 @@ Real Node is the judge: a local check runs the program on Node 24 and fails if t
 ## Further Notes
 
 - **Measured on Node 24.19.0:** as CommonJS, 20 runs out of 20 printed `A F E D C B`. As ESM, it printed `A F D E` before B and C. This is why ADR 0003 exists, and why the simulator's 50/50 race doesn't try to match real-world frequencies.
+- **Playtest URL:** https://agustinzago.github.io/node-kitchen/
 - **Playtest gate (not a code task):** 5 playtesters take a 3-question before/after "predict the output" quiz on a new but similar program, written with `/to-questionnaire`. It doubles as the first baseline for the PRD's learning metric.
 - **Vocabulary:** see `CONTEXT.md`. Decisions: ADRs 0001–0003. Rendering API facts: `docs/research/threejs-toon-webgpu.md`.
 - **Open questions in the PRD that don't block the slice:** the OpenJS name check, and the first-load download budget (to be set after the slice).
