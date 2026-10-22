@@ -1,10 +1,15 @@
 // Real Node is the judge (ADR 0001): run each Shift's program and make sure its
-// level file's Accepted outputs include everything Node prints.
+// level file's Accepted outputs include everything Node prints, and everything the sim
+// prints when it follows the Kitchen rules.
 import { execFileSync } from 'node:child_process';
 import { readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import type { Level } from '../src/sim/level.ts';
+import { act, followKitchenRules, receipt, startShift } from '../src/sim/shift.ts';
+
+// The seed's only job is the Oven race: an even seed leaves a 0 ms timer not ready on the first Lap.
+const SEED_OUTCOMES = { 'the Oven not ready on the first Lap': 0, 'the Oven ready on the first Lap': 1 };
 
 /** Returns the problems found; an empty list means the level agrees with Node. */
 export function checkLevel(level: Level, levelDir: string, runs = 20): string[] {
@@ -19,13 +24,23 @@ export function checkLevel(level: Level, levelDir: string, runs = 20): string[] 
     printed.add(stdout.trim().split('\n').join(' '));
   }
 
-  return [...printed]
+  const outsideAccepted = (output: string) =>
+    `printed "${output}", which is not in the Accepted outputs: ` + accepted.map((a) => `"${a}"`).join(', ');
+  const problems = [...printed]
     .filter((output) => !accepted.includes(output))
-    .map(
-      (output) =>
-        `${level.program} printed "${output}", which is not in the Accepted outputs: ` +
-        accepted.map((a) => `"${a}"`).join(', '),
-    );
+    .map((output) => `${level.program} ${outsideAccepted(output)}`);
+
+  for (const [outcome, seed] of Object.entries(SEED_OUTCOMES)) {
+    let shift = startShift(level, seed);
+    for (let action = followKitchenRules(shift); action; action = followKitchenRules(shift)) {
+      shift = act(shift, action).shift;
+    }
+    const output = receipt(shift).join(' ');
+    if (!accepted.includes(output)) {
+      problems.push(`the sim, following the Kitchen rules with ${outcome}, ${outsideAccepted(output)}`);
+    }
+  }
+  return problems;
 }
 
 if (import.meta.main) {
