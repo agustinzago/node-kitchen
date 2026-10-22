@@ -307,6 +307,7 @@ describe('judging the Receipt', () => {
 
       expect(judge(shift)).toEqual({
         accepted: true,
+        cleanService: true,
         stars: 1,
         predictionAccepted: null,
         routingMistakes: 0,
@@ -322,6 +323,7 @@ describe('judging the Receipt', () => {
 
     expect(judge(followRulesToClose(shift))).toEqual({
       accepted: false,
+      cleanService: false,
       stars: 0,
       predictionAccepted: null,
       routingMistakes: 0,
@@ -331,10 +333,10 @@ describe('judging the Receipt', () => {
     });
   });
 
-  it('breaking rule 3 is named even when the Receipt is accepted', () => {
+  it('breaking rule 3 costs star 1 even when the Receipt is accepted', () => {
     const { shift } = play(startShift(boss, ovenReady), [...openingDish, ...clearRails, pickUp('checkCounter')]);
 
-    expect(judge(followRulesToClose(shift))).toMatchObject({ accepted: true, stars: 1, brokenRules: [3] });
+    expect(judge(followRulesToClose(shift))).toMatchObject({ accepted: true, cleanService: false, stars: 0, brokenRules: [3] });
   });
 
   it('counts one routing mistake per refusal', () => {
