@@ -9,6 +9,7 @@ import {
   judge,
   lap,
   legalActions,
+  predict,
   receipt,
   routingMistakes,
   startShift,
@@ -266,6 +267,7 @@ describe('judging the Receipt', () => {
       expect(judge(shift)).toEqual({
         accepted: true,
         stars: 1,
+        predictionAccepted: null,
         routingMistakes: 0,
         brokenRules: [],
         firstWrongLine: null,
@@ -280,6 +282,7 @@ describe('judging the Receipt', () => {
     expect(judge(followRulesToClose(shift))).toEqual({
       accepted: false,
       stars: 0,
+      predictionAccepted: null,
       routingMistakes: 0,
       brokenRules: [2],
       firstWrongLine: { index: 2, line: 'D', rule: 2, nodeLine: 'E' },
@@ -304,5 +307,53 @@ describe('judging the Receipt', () => {
 
     expect(refusals).toBe(3);
     expect(judge(followRulesToClose(shift))).toMatchObject({ stars: 1, routingMistakes: refusals });
+  });
+});
+
+describe('judging the Prediction', () => {
+  const raceOrders = [
+    ['A', 'F', 'E', 'D', 'B', 'C'],
+    ['A', 'F', 'E', 'D', 'C', 'B'],
+  ];
+
+  it('either race order earns the bonus star, whatever the actual race outcome', () => {
+    for (const seed of [ovenReady, ovenNotReady]) {
+      for (const prediction of raceOrders) {
+        const shift = followRulesToClose(predict(startShift(boss, seed), prediction));
+
+        expect(judge(shift)).toMatchObject({ accepted: true, predictionAccepted: true, stars: 2 });
+      }
+    }
+  });
+
+  it('any other order earns no bonus star', () => {
+    for (const prediction of [
+      ['A', 'B', 'C', 'D', 'E', 'F'],
+      ['A', 'F', 'D', 'E', 'B', 'C'],
+      ['A', 'F', 'E', 'D', 'B'],
+    ]) {
+      const shift = followRulesToClose(predict(startShift(boss, ovenReady), prediction));
+
+      expect(judge(shift)).toMatchObject({ predictionAccepted: false, stars: 1 });
+    }
+  });
+
+  it('a correct Prediction earns the bonus star even when the Receipt is wrong', () => {
+    const { shift } = play(predict(startShift(boss, ovenReady), raceOrders[0]!), [...openingDish, pickUp('purpleRail')]);
+
+    expect(judge(followRulesToClose(shift))).toMatchObject({ accepted: false, predictionAccepted: true, stars: 1 });
+  });
+
+  it('skipping leaves no Prediction and no bonus star', () => {
+    expect(judge(followRulesToClose(startShift(boss, ovenReady)))).toMatchObject({ predictionAccepted: null, stars: 1 });
+  });
+
+  it('the Prediction locks when service starts', () => {
+    const { shift } = play(predict(startShift(boss, ovenReady), ['A', 'B', 'C', 'D', 'E', 'F']), [cook]);
+
+    expect(judge(followRulesToClose(predict(shift, raceOrders[0]!)))).toMatchObject({ predictionAccepted: false });
+    expect(judge(followRulesToClose(predict(play(startShift(boss, ovenReady), [cook]).shift, raceOrders[0]!)))).toMatchObject({
+      predictionAccepted: null,
+    });
   });
 });

@@ -42,6 +42,7 @@ export type Shift = {
   /** Each broken rule, with the Receipt length when it broke: the broken Dish prints from there. */
   ruleBreaks: { rule: 2 | 3; atLine: number }[];
   ended: boolean;
+  prediction: string[] | null;
 };
 
 const STATIONS: Station[] = ['orangeRail', 'purpleRail', 'oven', 'checkCounter'];
@@ -74,7 +75,13 @@ export function startShift(level: Level, seed: number): Shift {
     routingMistakes: 0,
     ruleBreaks: [],
     ended: false,
+    prediction: null,
   };
+}
+
+/** Puts the Receipt lines in a predicted order before service; once the first line cooks, it's locked. */
+export function predict(s: Shift, prediction: string[]): Shift {
+  return s.clock > 0 ? s : { ...s, prediction: [...prediction] };
 }
 
 export function act(shift: Shift, action: Action): { shift: Shift; events: ShiftEvent[] } {
@@ -212,6 +219,8 @@ export type Judgement = {
   /** The Receipt is one of the Accepted outputs. */
   accepted: boolean;
   stars: number;
+  /** The Prediction is one of the Accepted outputs; null when the player skipped it. */
+  predictionAccepted: boolean | null;
   routingMistakes: number;
   /** Each Kitchen rule broken at least once, in rule order. */
   brokenRules: (2 | 3)[];
@@ -234,9 +243,13 @@ export function judge(s: Shift): Judgement {
   const accepted = index === nodeReceipt.length && index === s.receipt.length;
   const wrong = index < s.receipt.length && index < nodeReceipt.length;
   const rule = s.ruleBreaks.findLast((b) => b.atLine <= index)?.rule ?? null;
+  const { prediction } = s;
+  const predictionAccepted =
+    prediction && s.level.acceptedOutputs.some((o) => o.length === prediction.length && o.every((l, i) => l === prediction[i]));
   return {
     accepted,
-    stars: accepted ? 1 : 0,
+    stars: (accepted ? 1 : 0) + (predictionAccepted ? 1 : 0),
+    predictionAccepted,
     routingMistakes: s.routingMistakes,
     brokenRules: ([2, 3] as const).filter((r) => s.ruleBreaks.some((b) => b.rule === r)),
     firstWrongLine: wrong ? { index, line: s.receipt[index]!, rule, nodeLine: nodeReceipt[index]! } : null,
