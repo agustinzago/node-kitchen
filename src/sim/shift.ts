@@ -42,6 +42,9 @@ export type Shift = {
   /** Each broken rule, with the Receipt length when it broke: the broken Dish prints from there. */
   ruleBreaks: { rule: 2 | 3; atLine: number }[];
   ended: boolean;
+  /** Replays the Shift: the seed it started from and every action act accepted. */
+  seed: number;
+  actions: Action[];
 };
 
 const STATIONS: Station[] = ['orangeRail', 'purpleRail', 'oven', 'checkCounter'];
@@ -74,6 +77,8 @@ export function startShift(level: Level, seed: number): Shift {
     routingMistakes: 0,
     ruleBreaks: [],
     ended: false,
+    seed,
+    actions: [],
   };
 }
 
@@ -86,6 +91,7 @@ export function act(shift: Shift, action: Action): { shift: Shift; events: Shift
 
   const s: Shift = JSON.parse(JSON.stringify(shift));
   const events: ShiftEvent[] = [];
+  s.actions.push(action);
 
   if (action.type === 'route') {
     const ticket = s.held;
