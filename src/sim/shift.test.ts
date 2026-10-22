@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import boss from '../shifts/opening-boss/level.ts';
+import type { Level } from './level.ts';
 import {
   act,
   dishOnStove,
@@ -235,6 +236,44 @@ describe('the restaurant closes', () => {
     ]);
     expect(hasEnded(closed)).toBe(true);
     expect(legalActions(closed)).toEqual([]);
+  });
+});
+
+describe('the kitchen idles in Poll', () => {
+  // Only a 0 ms timer: once it's in the Oven there is nothing else to cook.
+  const timerOnly: Level = {
+    program: 'timer-only.cjs',
+    openingDish: [{ sourceLine: 1, creates: 'B' }],
+    tickets: { B: { kind: 'timer', sourceLine: 1, createdBy: 'opening', receiptLines: ['B'], delayMs: 0 } },
+    acceptedOutputs: [['B']],
+  };
+
+  it('with only an unready timer left, picking up from the Oven waits for it on the next Lap', () => {
+    const { shift } = play(startShift(timerOnly, ovenNotReady), [cook, route('oven')]);
+    expect(waitingTickets(shift).oven[0]!.countdown).toBeGreaterThan(0);
+
+    const { shift: after, events } = act(shift, pickUp('oven'));
+
+    expect(events).toEqual([
+      { type: 'lapAdvanced', lap: 2 },
+      { type: 'dishStarted', dish: 'B' },
+    ]);
+    expect(receipt(play(after, [cook]).shift)).toEqual(['B']);
+  });
+
+  it('following the Kitchen rules closes the restaurant instead of getting stuck', () => {
+    let shift = startShift(timerOnly, ovenNotReady);
+    for (let action = followKitchenRules(shift); action; action = followKitchenRules(shift)) {
+      shift = act(shift, action).shift;
+    }
+    expect(hasEnded(shift)).toBe(true);
+    expect(receipt(shift)).toEqual(['B']);
+  });
+
+  it('an unready Oven still refuses while other work waits', () => {
+    const { shift } = play(startShift(boss, ovenNotReady), [...openingDish, ...clearRails]);
+
+    expect(act(shift, pickUp('oven')).events).toEqual([{ type: 'actionRefused', reason: 'nothingReady' }]);
   });
 });
 

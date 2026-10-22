@@ -129,6 +129,13 @@ export function act(shift: Shift, action: Action): { shift: Shift; events: Shift
     if (s.stove) return refuse('rule1');
     if (s.held) return refuse('handsFull');
     const waiting = s.stations[action.station];
+    // With only unready timers left, Node sleeps in the poll phase until the next one is due,
+    // then walks on round the Ring: the Oven starts the next Lap.
+    const idle = STATIONS.every((station) => station === 'oven' || s.stations[station].length === 0);
+    if (action.station === 'oven' && idle && waiting.length && !waiting.some((t) => isReady(s, t))) {
+      s.clock = Math.min(...waiting.map((t) => s.dueAt[t]));
+      s.ringPosition = RING.length - 1;
+    }
     const ticket = waiting.find((t) => isReady(s, t));
     if (!ticket) return refuse('nothingReady');
     const breaks = ruleBreaks(s, action.station, ticket);
