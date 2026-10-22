@@ -236,6 +236,8 @@ export function followKitchenRules(s: Shift): Action | undefined {
 export type Judgement = {
   /** The Receipt is one of the Accepted outputs. */
   accepted: boolean;
+  /** Star 1: the Receipt is accepted and no Kitchen rule was broken on the way. */
+  cleanService: boolean;
   stars: number;
   /** The Prediction is one of the Accepted outputs; null when the player skipped it. */
   predictionAccepted: boolean | null;
@@ -264,9 +266,11 @@ export function judge(s: Shift): Judgement {
   const { prediction } = s;
   const predictionAccepted =
     prediction && s.level.acceptedOutputs.some((o) => o.length === prediction.length && o.every((l, i) => l === prediction[i]));
+  const cleanService = accepted && s.ruleBreaks.length === 0;
   return {
     accepted,
-    stars: (accepted ? 1 : 0) + (predictionAccepted ? 1 : 0),
+    cleanService,
+    stars: (cleanService ? 1 : 0) + (predictionAccepted ? 1 : 0),
     predictionAccepted,
     routingMistakes: s.routingMistakes,
     brokenRules: ([2, 3] as const).filter((r) => s.ruleBreaks.some((b) => b.rule === r)),

@@ -94,7 +94,7 @@ Real Node is the judge: a local check runs the program on Node 24 and fails if t
 42. As a playtester, I want my Receipt shown line by line beside real Node's output when the Shift ends, so that I can compare them.
 43. As a playtester, I want the lines that differ shown in red, so that I spot mistakes immediately.
 44. As a playtester, I want my Receipt accepted if it matches any of the Accepted outputs, so that both race orders count as correct.
-45. As a playtester, I want one star for a correct Receipt and a bonus star for a correct Prediction, so that I know how I did.
+45. As a playtester, I want one star for a correct Receipt cooked without breaking a Kitchen rule, and a bonus star for a correct Prediction, so that I know how I did. A broken rule costs star 1 even when the Receipt happens to be accepted (breaking rule 3 while the Oven is ready can still print an accepted order).
 46. As a playtester, I want the results screen to name any Kitchen rule I broke and show my routing-mistake count, so that I know what to fix.
 47. As a playtester, I want to retry the Shift right away, so that I can try again with what I learned.
 48. As a playtester, I want a retry to roll the Oven race again, so that over several tries I meet both orders.
@@ -142,7 +142,7 @@ Real Node is the judge: a local check runs the program on Node 24 and fails if t
   - **Rule 3 tracking.** The simulator tracks a Ring position for the current Lap. Picking up from a Counter that comes later in the Ring order, while an earlier Counter holds a ready Ticket, breaks rule 3.
   - **Time.** The clock is virtual and turn-based. Walking costs nothing; cooking a line and picking up a Ticket advance it. The Opening dish has a start-up cost chosen from the seed, so that on the first Lap the `setTimeout(0)` Ticket is ready with 50% probability. A Ticket that isn't ready stays in the Oven until a later Lap.
   - **Ending.** The restaurant closes when nothing is cooking and no Tickets remain anywhere.
-  - **Judgement** contains: whether the Receipt is in the Accepted outputs, whether the Prediction is, the stars (1 for the Receipt, 1 bonus for the Prediction), the routing-mistake count, the broken rules, and the first wrong Receipt line with the rule broken there and what real Node did instead.
+  - **Judgement** contains: whether the Receipt is in the Accepted outputs, whether the Prediction is, the stars (star 1 when the Receipt is accepted and no Kitchen rule was broken, plus 1 bonus for the Prediction), the routing-mistake count, the broken rules, and the first wrong Receipt line with the rule broken there and what real Node did instead.
 - **Level files.** One per Shift, next to its program file. Hand-written, as decided in ADR 0001. Each holds:
   - the program file reference, which must be `.cjs` (ADR 0003)
   - the ordered lines of the Opening dish

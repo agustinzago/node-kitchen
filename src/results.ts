@@ -5,6 +5,12 @@ import { KITCHEN_RULES } from './preservice.ts';
 import { openReplay } from './replay.ts';
 import { judge, receipt, type Shift } from './sim/shift.ts';
 
+const STAR = {
+  clean: '★ Star 1: your Receipt matches real Node',
+  ruleBroken: '☆ No star: your Receipt matches real Node, but you broke a Kitchen rule',
+  wrong: '☆ No star: your Receipt differs from real Node',
+};
+
 const BONUS: Record<string, string> = {
   true: '★ Bonus star: your Prediction matches real Node',
   false: '☆ No bonus star: your Prediction differs from real Node',
@@ -13,7 +19,7 @@ const BONUS: Record<string, string> = {
 
 export function showResults(shift: Shift) {
   if (document.getElementById('results')) return;
-  const { accepted, predictionAccepted, routingMistakes, brokenRules, nodeReceipt } = judge(shift);
+  const { accepted, cleanService, predictionAccepted, routingMistakes, brokenRules, nodeReceipt } = judge(shift);
   const mine = receipt(shift);
 
   const rows = Array.from({ length: Math.max(mine.length, nodeReceipt.length) }, (_, i) =>
@@ -34,7 +40,7 @@ export function showResults(shift: Shift) {
       'section',
       { id: 'results', className: 'panel', ariaLabel: 'Results' },
       el('h2', { textContent: 'Results' }),
-      el('p', { id: 'stars', textContent: accepted ? '★ Star 1: your Receipt matches real Node' : '☆ No star: your Receipt differs from real Node' }),
+      el('p', { id: 'stars', textContent: STAR[cleanService ? 'clean' : accepted ? 'ruleBroken' : 'wrong'] }),
       el('p', { id: 'bonus-star', textContent: BONUS[String(predictionAccepted)] }),
       el(
         'table',

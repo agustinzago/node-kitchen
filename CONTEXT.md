@@ -71,7 +71,7 @@ _Avoid_: Served dish, plate
 The set of Receipt-line orders that real Node can produce for a program. Usually one; more when Node itself can't promise an order (e.g. a top-level timer vs setImmediate).
 
 **Kitchen rules**:
-The three rules a Dish follows: (1) one Dish at a time, to the end; (2) after every Dish, clear the orange then the purple Rail until both are empty; (3) then walk the Ring. Rule 1 is a wall the Head Chef cannot break; rules 2 and 3 can be broken, and a broken rule shows up on the Receipt and in the Replay.
+The three rules a Dish follows: (1) one Dish at a time, to the end; (2) after every Dish, clear the orange then the purple Rail until both are empty; (3) then walk the Ring. Rule 1 is a wall the Head Chef cannot break; rules 2 and 3 can be broken, and a broken rule costs star 1 and is named in the Replay, even when the Receipt is accepted.
 
 **Replay**:
 The player's Shift played back beside the program's code, highlighting the line that made each Ticket. It pauses at the first Receipt line outside Accepted outputs, names the broken Kitchen rule, and shows what real Node did instead.
