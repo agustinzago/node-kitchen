@@ -5,7 +5,7 @@ import level from './shifts/opening-boss/level.ts';
 import program from './shifts/opening-boss/program.cjs?raw';
 import { showResults } from './results.ts';
 import { preService } from './preservice.ts';
-import type { TicketKind } from './sim/level.ts';
+import { KIND_COLOURS, STATION_NAMES, type Kind, type StationName } from './legend.ts';
 import {
   act,
   dishOnStove,
@@ -35,32 +35,41 @@ const LAYOUT = [
   '.........',
   '....C....',
 ];
-type Station = { name: string; color: string; height: number; sim?: SimStation };
-const GREYED = '#b4b0aa';
-const STATIONS: Record<string, Station> = {
-  S: { name: 'Stove', color: '#3d3f46', height: 0.9 },
-  o: { name: 'orange rail', color: '#f08a24', height: 0.6, sim: 'orangeRail' },
-  p: { name: 'purple rail', color: '#8e5bd6', height: 0.6, sim: 'purpleRail' },
-  O: { name: 'Oven', color: '#3f7fd9', height: 1.1, sim: 'oven' },
-  P: { name: 'Pending shelf', color: GREYED, height: 0.6 },
-  L: { name: 'Poll pass', color: GREYED, height: 0.6 },
-  C: { name: 'Check counter', color: '#f2b52c', height: 0.9, sim: 'checkCounter' },
-  H: { name: 'Close hatch', color: GREYED, height: 0.6 },
+const CODES: Record<string, StationName> = {
+  S: 'stove',
+  o: 'orangeRail',
+  p: 'purpleRail',
+  O: 'oven',
+  P: 'pendingShelf',
+  L: 'pollPass',
+  C: 'checkCounter',
+  H: 'closeHatch',
 };
-const codeOf = (sim: SimStation) => Object.keys(STATIONS).find((code) => STATIONS[code]!.sim === sim)!;
-const RING = ['O', 'P', 'L', 'C', 'H'];
+const GREYED = '#b4b0aa';
+const STATIONS: Record<StationName, { color: string; height: number }> = {
+  stove: { color: '#3d3f46', height: 0.9 },
+  orangeRail: { color: KIND_COLOURS.nextTick.colour, height: 0.6 },
+  purpleRail: { color: KIND_COLOURS.microtask.colour, height: 0.6 },
+  oven: { color: KIND_COLOURS.timer.colour, height: 1.1 },
+  pendingShelf: { color: GREYED, height: 0.6 },
+  pollPass: { color: GREYED, height: 0.6 },
+  checkCounter: { color: KIND_COLOURS.immediate.colour, height: 0.9 },
+  closeHatch: { color: GREYED, height: 0.6 },
+};
+const RING: StationName[] = ['oven', 'pendingShelf', 'pollPass', 'checkCounter', 'closeHatch'];
 const SPEED = 4; // tiles per second
 const CHEF_HALF = 0.3; // half the Head Chef's footprint, in tiles
 
 const cellAt = (x: number, z: number) => LAYOUT[z]?.[x];
+const stationAt = (x: number, z: number): StationName | undefined => CODES[cellAt(x, z) ?? ''];
 const solid = (x: number, z: number) => cellAt(x, z) !== '.'; // off the grid is solid too
 const blocked = (x: number, z: number) =>
   [-CHEF_HALF, CHEF_HALF].some((dx) =>
     [-CHEF_HALF, CHEF_HALF].some((dz) => solid(Math.round(x + dx), Math.round(z + dz))),
   );
-const find = (code: string) => {
-  const z = LAYOUT.findIndex((row) => row.includes(code));
-  return new THREE.Vector3(LAYOUT[z]!.indexOf(code), 0, z);
+const find = (station: StationName) => {
+  const z = LAYOUT.findIndex((row) => [...row].some((code) => CODES[code] === station));
+  return new THREE.Vector3([...LAYOUT[z]!].findIndex((code) => CODES[code] === station), 0, z);
 };
 
 // Three light bands for the toon look.
@@ -84,31 +93,31 @@ const box = (w: number, h: number, d: number, material: THREE.Material) => {
 
 // Floor tiles in a checker pattern, so the grid reads at a glance.
 const floor = [toon('#e9d8bb'), toon('#dcc7a5')];
-const stationMeshes: Record<string, THREE.Mesh> = {};
+const stationMeshes = new Map<StationName, THREE.Mesh>();
 LAYOUT.forEach((row, z) =>
   [...row].forEach((code, x) => {
     const tile = box(0.98, 0.1, 0.98, floor[(x + z) % 2]!);
     tile.position.set(x, -0.1, z);
     scene.add(tile);
-    const station = STATIONS[code];
+    const station = CODES[code];
     if (!station) return;
-    const mesh = box(0.9, station.height, 0.9, toon(station.color));
+    const mesh = box(0.9, STATIONS[station].height, 0.9, toon(STATIONS[station].color));
     mesh.position.x = x;
     mesh.position.z = z;
-    stationMeshes[code] = mesh;
+    stationMeshes.set(station, mesh);
     scene.add(mesh);
   }),
 );
 
 // The Stove's one hotplate: one Dish cooks at a time.
 const hotplate = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.28, 0.06, 24), toon('#e04a2f'));
-hotplate.position.copy(find('S')).setY(STATIONS.S!.height + 0.03);
+hotplate.position.copy(find('stove')).setY(STATIONS.stove.height + 0.03);
 scene.add(hotplate);
 
 // Conveyor arrows on the floor between consecutive Ring Counters, pointing clockwise.
 const arrowMaterial = toon('#6b5a45');
-RING.forEach((code, i) => {
-  const from = find(code);
+RING.forEach((station, i) => {
+  const from = find(station);
   const to = find(RING[(i + 1) % RING.length]!);
   const arrow = new THREE.Mesh(new THREE.ConeGeometry(0.2, 0.8, 3), arrowMaterial);
   arrow.position.lerpVectors(from, to, 0.5);
@@ -137,22 +146,14 @@ const highlight = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), glow);
 scene.add(highlight);
 
 // Each Ticket kind has its own colour and its own silhouette, so kinds never rely on colour alone.
-type Kind = TicketKind | 'sync';
-const KINDS: Record<Kind, { colour: string; geometry: THREE.BufferGeometry }> = {
-  sync: { colour: '#8d8a86', geometry: new THREE.BoxGeometry(0.42, 0.18, 0.42) }, // slab
-  nextTick: { colour: '#f08a24', geometry: new THREE.ConeGeometry(0.24, 0.42, 3) }, // pyramid
-  microtask: { colour: '#8e5bd6', geometry: new THREE.OctahedronGeometry(0.24) }, // diamond
-  timer: { colour: '#3f7fd9', geometry: new THREE.CylinderGeometry(0.22, 0.22, 0.14, 24) }, // round puck
-  immediate: { colour: '#f2b52c', geometry: new THREE.TorusGeometry(0.16, 0.07, 10, 24) }, // ring
+const SHAPES: Record<Kind, THREE.BufferGeometry> = {
+  sync: new THREE.BoxGeometry(0.42, 0.18, 0.42), // slab
+  nextTick: new THREE.ConeGeometry(0.24, 0.42, 3), // pyramid
+  microtask: new THREE.OctahedronGeometry(0.24), // diamond
+  timer: new THREE.CylinderGeometry(0.22, 0.22, 0.14, 24), // round puck
+  immediate: new THREE.TorusGeometry(0.16, 0.07, 10, 24), // ring
 };
 const kindOf = (dish: Dish): Kind => (dish === 'opening' ? 'sync' : level.tickets[dish]!.kind);
-const COLOUR_NAME: Record<Kind, string> = {
-  sync: 'grey',
-  nextTick: 'orange',
-  microtask: 'purple',
-  timer: 'blue',
-  immediate: 'amber',
-};
 
 const center = new THREE.Vector3((LAYOUT[0]!.length - 1) / 2, 0, (LAYOUT.length - 1) / 2);
 const camera = new THREE.OrthographicCamera();
@@ -202,8 +203,8 @@ const ticketLabels = new Map<Dish, HTMLElement>();
 function ticketMesh(dish: Dish) {
   let mesh = ticketMeshes.get(dish);
   if (!mesh) {
-    const kind = KINDS[kindOf(dish)];
-    mesh = new THREE.Mesh(kind.geometry, toon(kind.colour));
+    const kind = kindOf(dish);
+    mesh = new THREE.Mesh(SHAPES[kind], toon(KIND_COLOURS[kind].colour));
     scene.add(mesh);
     ticketMeshes.set(dish, mesh);
     const label = document.createElement('span');
@@ -221,7 +222,7 @@ function placeTickets() {
   const stove = dishOnStove(shift);
   if (stove) {
     shown.set(stove.dish, {
-      at: find('S').setY(STATIONS.S!.height + 0.2),
+      at: find('stove').setY(STATIONS.stove.height + 0.2),
       text: stove.dish === 'opening' ? 'Opening dish' : stove.dish,
     });
   }
@@ -231,9 +232,8 @@ function placeTickets() {
     shown.set(held, { at, text: held });
   }
   for (const [station, tickets] of Object.entries(waitingTickets(shift))) {
-    const code = codeOf(station as SimStation);
     tickets.forEach(({ ticket, countdown }, i) => {
-      const at = find(code).setY(STATIONS[code]!.height + 0.2 + i * 0.4);
+      const at = find(station as SimStation).setY(STATIONS[station as SimStation].height + 0.2 + i * 0.4);
       const text = station === 'oven' ? `${ticket} ${countdown ? `⏲ ${countdown}` : '✓ ready'}` : ticket;
       shown.set(ticket, { at, text });
     });
@@ -264,25 +264,15 @@ function pin(label: HTMLElement, at: THREE.Vector3) {
 }
 
 // Station labels: the kitchen name, plus the real Node name while X-ray is on (X toggles it).
-const NODE_NAMES: Record<string, string> = {
-  S: 'call stack',
-  o: 'nextTick queue',
-  p: 'microtask queue',
-  O: 'timers phase',
-  P: 'pending callbacks phase',
-  L: 'poll phase',
-  C: 'check phase',
-  H: 'close callbacks phase',
-};
-const stationLabels = Object.entries(STATIONS).map(([code, { name }]) => {
+const stationLabels = Object.entries(STATION_NAMES).map(([station, [kitchen, node]]) => {
   const label = document.createElement('span');
   label.className = 'station-label';
-  label.dataset.station = code;
-  label.append(name, Object.assign(document.createElement('b'), { className: 'xray', textContent: NODE_NAMES[code] }));
+  label.dataset.station = station;
+  label.append(kitchen, Object.assign(document.createElement('b'), { className: 'xray', textContent: node }));
   $('labels').append(label);
   // Under the station's front edge; the Rails' labels sit on their outer sides, clear of the Stove's.
-  const side = code === 'o' ? -1 : code === 'p' ? 1 : 0;
-  return { label, at: find(code).add(new THREE.Vector3(side * 0.45, 0, 0.45)) };
+  const side = station === 'orangeRail' ? -1 : station === 'purpleRail' ? 1 : 0;
+  return { label, at: find(station as StationName).add(new THREE.Vector3(side * 0.45, 0, 0.45)) };
 });
 const placeStationLabels = () => stationLabels.forEach(({ label, at }) => pin(label, at.clone()));
 addEventListener('keydown', (e) => {
@@ -294,7 +284,7 @@ function updateOverlay() {
   wallLines.forEach((li, i) => li.classList.toggle('cooking', stove?.sourceLine === i + 1));
   const held = heldTicket(shift);
   $('lap').textContent = String(lap(shift));
-  $('held').textContent = held ? `${held} (${COLOUR_NAME[kindOf(held)]})` : 'nothing';
+  $('held').textContent = held ? `${held} (${KIND_COLOURS[kindOf(held)].word})` : 'nothing';
   $('mistakes').textContent = String(routingMistakes(shift));
   $('receipt').replaceChildren(
     ...receipt(shift).map((line) => Object.assign(document.createElement('li'), { textContent: line })),
@@ -307,15 +297,15 @@ function updateOverlay() {
   }
 }
 
-let buzzing = { code: '', until: 0 };
-function say(message: string, buzz?: string) {
+let buzzing: { station?: StationName; until: number } = { until: 0 };
+function say(message: string, buzz?: StationName) {
   const toast = $('toast');
   toast.textContent = message;
   toast.classList.toggle('buzz', buzz !== undefined);
   toast.classList.remove('show');
   void toast.offsetWidth; // restart the fade
   toast.classList.add('show');
-  if (buzz !== undefined) buzzing = { code: buzz, until: performance.now() + 400 };
+  if (buzz !== undefined) buzzing = { station: buzz, until: performance.now() + 400 };
 }
 
 const REFUSALS: Record<Extract<ShiftEvent, { type: 'actionRefused' }>['reason'], string> = {
@@ -329,23 +319,24 @@ const REFUSALS: Record<Extract<ShiftEvent, { type: 'actionRefused' }>['reason'],
 
 /** "Use" on the faced cell: cook at the Stove, put down the held Ticket, or pick one up. */
 function use() {
-  const code = cellAt(faced.x, faced.z) ?? '';
-  const station = STATIONS[code];
+  const station = stationAt(faced.x, faced.z);
   if (!station) return;
+  const name = STATION_NAMES[station][0];
   let action: Action;
-  if (code === 'S') action = { type: 'cook' };
-  else if (station.sim) action = { type: heldTicket(shift) ? 'route' : 'pickUp', station: station.sim };
-  else return say(`The ${station.name} is closed this Shift.`, code);
+  if (station === 'stove') action = { type: 'cook' };
+  else if (station === 'pendingShelf' || station === 'pollPass' || station === 'closeHatch') {
+    return say(`The ${name} is closed this Shift.`, station);
+  } else action = { type: heldTicket(shift) ? 'route' : 'pickUp', station };
 
   const result = act(shift, action);
   shift = result.shift;
   for (const event of result.events) {
     if (event.type === 'ticketRefused') {
-      const right = STATIONS[codeOf(waitsAt(shift, event.ticket))]!.name;
-      say(`Buzz! The ${station.name} refuses ${event.ticket}: ${COLOUR_NAME[kindOf(event.ticket)]} Tickets wait at the ${right}.`, code);
+      const right = STATION_NAMES[waitsAt(shift, event.ticket)][0];
+      say(`Buzz! The ${name} refuses ${event.ticket}: ${KIND_COLOURS[kindOf(event.ticket)].word} Tickets wait at the ${right}.`, station);
     } else if (event.type === 'actionRefused') {
-      const notYet = event.reason === 'nothingReady' && waitingTickets(shift).oven.length && code === 'O';
-      say(notYet ? 'The Oven isn’t ready yet: come back next Lap.' : REFUSALS[event.reason], code);
+      const notYet = event.reason === 'nothingReady' && waitingTickets(shift).oven.length && station === 'oven';
+      say(notYet ? 'The Oven isn’t ready yet: come back next Lap.' : REFUSALS[event.reason], station);
     } else if (event.type === 'lapAdvanced') {
       say(`Lap ${event.lap}`);
     } else if (event.type === 'restaurantClosed') {
@@ -394,17 +385,17 @@ function walk(dt: number) {
   }
   faced.x = Math.round(chef.position.x) + facing.x;
   faced.z = Math.round(chef.position.z) + facing.z;
-  const code = cellAt(faced.x, faced.z);
-  highlight.visible = code !== undefined;
-  const height = (STATIONS[code ?? '']?.height ?? 0) + 0.06;
+  const station = stationAt(faced.x, faced.z);
+  highlight.visible = cellAt(faced.x, faced.z) !== undefined;
+  const height = (station ? STATIONS[station].height : 0) + 0.06;
   highlight.scale.set(1.04, height, 1.04);
   highlight.position.set(faced.x, height / 2 - 0.02, faced.z);
 }
 
 /** A refused station shakes for a moment. */
 function shake(now: number) {
-  for (const [code, mesh] of Object.entries(stationMeshes)) {
-    mesh.position.x = find(code).x + (code === buzzing.code && now < buzzing.until ? Math.sin(now / 18) * 0.06 : 0);
+  for (const [station, mesh] of stationMeshes) {
+    mesh.position.x = find(station).x + (station === buzzing.station && now < buzzing.until ? Math.sin(now / 18) * 0.06 : 0);
   }
 }
 

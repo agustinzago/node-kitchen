@@ -2,18 +2,12 @@
 // at the first wrong Receipt line and explains it, in kitchen words or, with X-ray, in Node's.
 import './replay.css';
 import { el } from './el.ts';
+import { STATION_NAMES } from './legend.ts';
 import { KITCHEN_RULES } from './preservice.ts';
 import type { TicketId } from './sim/level.ts';
 import { replayTimeline, type ReplayStep } from './sim/replay.ts';
 import { dishOnStove, heldTicket, judge, receipt, waitingTickets, waitsAt, type Shift, type Station } from './sim/shift.ts';
 
-/** Each station's kitchen name and real Node name. */
-const NAMES: Record<Station, [string, string]> = {
-  orangeRail: ['orange rail', 'nextTick queue'],
-  purpleRail: ['purple rail', 'microtask queue'],
-  oven: ['Oven', 'timers phase'],
-  checkCounter: ['Check counter', 'check phase'],
-};
 /** The API that schedules a Ticket waiting at each station. */
 const API: Record<Station, string> = {
   orangeRail: 'process.nextTick',
@@ -28,7 +22,7 @@ type Note = { at: number; id: string; kitchen: string; node: string };
 
 function notes(shift: Shift, steps: ReplayStep[]): { pause: number; notes: Note[] } {
   const api = (t: TicketId) => API[waitsAt(shift, t)];
-  const at = (t: TicketId) => NAMES[waitsAt(shift, t)];
+  const at = (t: TicketId) => STATION_NAMES[waitsAt(shift, t)];
   const found: Note[] = [];
   const { firstWrongLine, routingMistakes } = judge(shift);
 
@@ -86,8 +80,8 @@ function notes(shift: Shift, steps: ReplayStep[]): { pause: number; notes: Note[
     found.push({
       at: steps.length - 1,
       id: 'routing',
-      kitchen: `${count}. The ${NAMES[station][0]} refused ${t}: ${t} waits at the ${at(t)[0]}.`,
-      node: `${count}. ${t} is a ${api(t)} callback, so it waits in the ${at(t)[1]}, not the ${NAMES[station][1]}.`,
+      kitchen: `${count}. The ${STATION_NAMES[station][0]} refused ${t}: ${t} waits at the ${at(t)[0]}.`,
+      node: `${count}. ${t} is a ${api(t)} callback, so it waits in the ${at(t)[1]}, not the ${STATION_NAMES[station][1]}.`,
     });
   }
   if (pause < 0) pause = steps.length - 1;
@@ -99,9 +93,9 @@ function caption({ action, events, sourceLine }: ReplayStep): string {
   for (const e of events) {
     if (e.type === 'receiptLinePrinted') return `Cooked line ${sourceLine}: printed ${e.line}`;
     if (e.type === 'ticketCreated') return `Cooked line ${sourceLine}: made Ticket ${e.ticket}`;
-    if (e.type === 'ticketRefused') return `The ${NAMES[e.station][0]} refused ${e.ticket}`;
-    if (e.type === 'ticketRouted') return `Routed ${e.ticket} to the ${NAMES[e.station][0]}`;
-    if (e.type === 'dishStarted' && action.type === 'pickUp') return `Picked up ${e.dish} from the ${NAMES[action.station][0]}`;
+    if (e.type === 'ticketRefused') return `The ${STATION_NAMES[e.station][0]} refused ${e.ticket}`;
+    if (e.type === 'ticketRouted') return `Routed ${e.ticket} to the ${STATION_NAMES[e.station][0]}`;
+    if (e.type === 'dishStarted' && action.type === 'pickUp') return `Picked up ${e.dish} from the ${STATION_NAMES[action.station][0]}`;
   }
   return action.type;
 }

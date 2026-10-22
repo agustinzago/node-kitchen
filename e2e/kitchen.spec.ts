@@ -208,7 +208,7 @@ test('X-ray is on at the start and X toggles it', async ({ page }) => {
   await page.goto('/');
   await page.waitForFunction(() => window.__kitchen);
   await skipPrediction(page);
-  const oven = page.locator('.station-label[data-station="O"]');
+  const oven = page.locator('.station-label[data-station="oven"]');
   await expect(page.locator('.station-label')).toHaveCount(8);
   await expect(oven.getByText('timers phase')).toBeVisible();
   await page.keyboard.press('KeyX');
