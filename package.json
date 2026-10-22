@@ -1,0 +1,23 @@
+{
+  "name": "node-kitchen",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@11.22.0",
+  "engines": {
+    "node": ">=24 <25"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json && tsc -p src/sim/tsconfig.json",
+    "test": "vitest run",
+    "level-check": "node scripts/level-check.ts",
+    "e2e": "playwright test --pass-with-no-tests",
+    "check": "pnpm typecheck && pnpm test && pnpm level-check && pnpm e2e"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.64.1",
+    "@types/node": "24.19.2",
+    "typescript": "7.0.2",
+    "vite": "8.3.5",
+    "vitest": "5.0.5"
+  }
+}
