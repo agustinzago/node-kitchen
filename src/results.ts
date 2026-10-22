@@ -1,5 +1,6 @@
 // The results screen, shown once the restaurant closes: the Receipt judged against real Node.
 import './results.css';
+import { el } from './el.ts';
 import { openReplay } from './replay.ts';
 import { judge, receipt, type Shift } from './sim/shift.ts';
 
@@ -13,12 +14,6 @@ const BONUS: Record<string, string> = {
   false: '☆ No bonus star: your Prediction differs from real Node',
   null: '☆ No bonus star: you skipped the Prediction',
 };
-
-function el<K extends keyof HTMLElementTagNameMap>(tag: K, props: Partial<HTMLElementTagNameMap[K]> = {}, ...children: (Node | string)[]) {
-  const node = Object.assign(document.createElement(tag), props);
-  node.append(...children);
-  return node;
-}
 
 export function showResults(shift: Shift) {
   if (document.getElementById('results')) return;

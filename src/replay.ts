@@ -1,6 +1,7 @@
 // The Replay: the Shift played back beside the program on the wall, step by step. It pauses
 // at the first wrong Receipt line and explains it, in kitchen words or, with X-ray, in Node's.
 import './replay.css';
+import { el } from './el.ts';
 import type { TicketId, TicketKind } from './sim/level.ts';
 import { replayTimeline, type ReplayStep } from './sim/replay.ts';
 import { dishOnStove, heldTicket, judge, receipt, waitingTickets, type Shift, type Station } from './sim/shift.ts';
@@ -107,12 +108,6 @@ function caption({ action, events, sourceLine }: ReplayStep): string {
     if (e.type === 'dishStarted' && action.type === 'pickUp') return `Picked up ${e.dish} from the ${NAMES[action.station][0]}`;
   }
   return action.type;
-}
-
-function el<K extends keyof HTMLElementTagNameMap>(tag: K, props: Partial<HTMLElementTagNameMap[K]> = {}, ...children: (Node | string)[]) {
-  const node = Object.assign(document.createElement(tag), props);
-  node.append(...children);
-  return node;
 }
 
 export function openReplay(shift: Shift) {

@@ -1,6 +1,7 @@
 // Before service: a card with the controls and the Kitchen rules, then the predict board.
 // The Kitchen rules also stay painted on the wall for the whole Shift.
 import './preservice.css';
+import { el } from './el.ts';
 import type { Level } from './sim/level.ts';
 
 const KITCHEN_RULES = [
@@ -14,11 +15,6 @@ const CONTROLS: [keys: string[], does: string][] = [
   [['X'], 'turn X-ray off and on (real Node names)'],
 ];
 
-function el<K extends keyof HTMLElementTagNameMap>(tag: K, props: Partial<HTMLElementTagNameMap[K]> = {}, ...children: (Node | string)[]) {
-  const node = Object.assign(document.createElement(tag), props);
-  node.append(...children);
-  return node;
-}
 const rulesList = () => el('ol', { className: 'rules' }, ...KITCHEN_RULES.map((rule) => el('li', { textContent: rule })));
 
 /** The program's Receipt lines in source order: the cards the player sorts. */
