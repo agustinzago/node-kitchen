@@ -5,7 +5,7 @@ import level from './shifts/opening-boss/level.ts';
 import program from './shifts/opening-boss/program.cjs?raw';
 import { showResults } from './results.ts';
 import { preService } from './preservice.ts';
-import type { TicketId, TicketKind } from './sim/level.ts';
+import type { TicketKind } from './sim/level.ts';
 import {
   act,
   dishOnStove,
@@ -99,10 +99,10 @@ LAYOUT.forEach((row, z) =>
   }),
 );
 
-// The Stove's single burner.
-const burner = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.28, 0.06, 24), toon('#e04a2f'));
-burner.position.copy(find('S')).setY(STATIONS.S!.height + 0.03);
-scene.add(burner);
+// The Stove's one hotplate: one Dish cooks at a time.
+const hotplate = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.28, 0.06, 24), toon('#e04a2f'));
+hotplate.position.copy(find('S')).setY(STATIONS.S!.height + 0.03);
+scene.add(hotplate);
 
 // Conveyor arrows on the floor between consecutive Ring Counters, pointing clockwise.
 const arrowMaterial = toon('#6b5a45');
