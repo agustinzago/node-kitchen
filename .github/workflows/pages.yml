@@ -2,7 +2,7 @@ name: Pages
 
 on:
   push:
-    branches: [master, slice/opening-shift] # ponytail: slice branch only until PR #1 merges
+    branches: [master]
   workflow_dispatch:
 
 permissions:
