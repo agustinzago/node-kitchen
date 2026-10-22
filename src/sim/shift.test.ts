@@ -6,6 +6,7 @@ import {
   followKitchenRules,
   hasEnded,
   heldTicket,
+  judge,
   lap,
   legalActions,
   receipt,
@@ -249,4 +250,59 @@ it('the same seed always gives the same Shift', () => {
   for (const seed of [0, 1, 7, 42, 1234]) {
     expect(playByTheRules(seed)).toEqual(playByTheRules(seed));
   }
+});
+
+/** Follows the Kitchen rules until the restaurant closes. */
+function followRulesToClose(shift: Shift): Shift {
+  for (let action = followKitchenRules(shift); action; action = followKitchenRules(shift)) shift = act(shift, action).shift;
+  return shift;
+}
+
+describe('judging the Receipt', () => {
+  it('following the Kitchen rules earns star 1 for both race orders', () => {
+    for (const seed of [ovenReady, ovenNotReady]) {
+      const shift = followRulesToClose(startShift(boss, seed));
+
+      expect(judge(shift)).toEqual({
+        accepted: true,
+        stars: 1,
+        routingMistakes: 0,
+        brokenRules: [],
+        firstWrongLine: null,
+        nodeReceipt: receipt(shift),
+      });
+    }
+  });
+
+  it('breaking rule 2 gives no star and reports the first wrong line, the rule and real Node’s line', () => {
+    const { shift } = play(startShift(boss, ovenReady), [...openingDish, pickUp('purpleRail')]);
+
+    expect(judge(followRulesToClose(shift))).toEqual({
+      accepted: false,
+      stars: 0,
+      routingMistakes: 0,
+      brokenRules: [2],
+      firstWrongLine: { index: 2, line: 'D', rule: 2, nodeLine: 'E' },
+      nodeReceipt: ['A', 'F', 'E', 'D', 'B', 'C'],
+    });
+  });
+
+  it('breaking rule 3 is named even when the Receipt is accepted', () => {
+    const { shift } = play(startShift(boss, ovenReady), [...openingDish, ...clearRails, pickUp('checkCounter')]);
+
+    expect(judge(followRulesToClose(shift))).toMatchObject({ accepted: true, stars: 1, brokenRules: [3] });
+  });
+
+  it('counts one routing mistake per refusal', () => {
+    let shift = startShift(boss, ovenReady);
+    let refusals = 0;
+    for (const action of [cook, cook, route('checkCounter'), route('purpleRail'), route('oven'), cook, route('oven')]) {
+      const result = act(shift, action);
+      refusals += result.events.filter((e) => e.type === 'ticketRefused').length;
+      shift = result.shift;
+    }
+
+    expect(refusals).toBe(3);
+    expect(judge(followRulesToClose(shift))).toMatchObject({ stars: 1, routingMistakes: refusals });
+  });
 });

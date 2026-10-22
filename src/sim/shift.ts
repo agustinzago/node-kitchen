@@ -39,6 +39,8 @@ export type Shift = {
   lap: number;
   receipt: string[];
   routingMistakes: number;
+  /** Each broken rule, with the Receipt length when it broke: the broken Dish prints from there. */
+  ruleBreaks: { rule: 2 | 3; atLine: number }[];
   ended: boolean;
 };
 
@@ -70,6 +72,7 @@ export function startShift(level: Level, seed: number): Shift {
     lap: 1,
     receipt: [],
     routingMistakes: 0,
+    ruleBreaks: [],
     ended: false,
   };
 }
@@ -115,7 +118,9 @@ export function act(shift: Shift, action: Action): { shift: Shift; events: Shift
     const waiting = s.stations[action.station];
     const ticket = waiting.find((t) => isReady(s, t));
     if (!ticket) return refuse('nothingReady');
-    events.push(...ruleBreaks(s, action.station, ticket));
+    const breaks = ruleBreaks(s, action.station, ticket);
+    for (const e of breaks) if (e.type === 'kitchenRuleBroken') s.ruleBreaks.push({ rule: e.rule, atLine: s.receipt.length });
+    events.push(...breaks);
     const ringPosition = RING.indexOf(action.station);
     if (ringPosition >= 0) {
       if (ringPosition < s.ringPosition) events.push({ type: 'lapAdvanced', lap: ++s.lap });
@@ -201,4 +206,40 @@ export function legalActions(s: Shift): Action[] {
 /** The one legal action that breaks no Kitchen rule, or undefined once the restaurant has closed. */
 export function followKitchenRules(s: Shift): Action | undefined {
   return legalActions(s).find((action) => !act(s, action).events.some((e) => e.type === 'kitchenRuleBroken'));
+}
+
+export type Judgement = {
+  /** The Receipt is one of the Accepted outputs. */
+  accepted: boolean;
+  stars: number;
+  routingMistakes: number;
+  /** Each Kitchen rule broken at least once, in rule order. */
+  brokenRules: (2 | 3)[];
+  /** The first Receipt line outside the Accepted outputs, the rule broken there, and real Node's line. */
+  firstWrongLine: { index: number; line: string; rule: 2 | 3 | null; nodeLine: string } | null;
+  /** The Accepted output closest to the Receipt: what real Node printed. */
+  nodeReceipt: string[];
+};
+
+export function judge(s: Shift): Judgement {
+  const sharedPrefix = (output: string[]) => {
+    let i = 0;
+    while (i < output.length && output[i] === s.receipt[i]) i++;
+    return i;
+  };
+  const nodeReceipt = s.level.acceptedOutputs.reduce((best, output) =>
+    sharedPrefix(output) > sharedPrefix(best) ? output : best,
+  );
+  const index = sharedPrefix(nodeReceipt);
+  const accepted = index === nodeReceipt.length && index === s.receipt.length;
+  const wrong = index < s.receipt.length && index < nodeReceipt.length;
+  const rule = s.ruleBreaks.findLast((b) => b.atLine <= index)?.rule ?? null;
+  return {
+    accepted,
+    stars: accepted ? 1 : 0,
+    routingMistakes: s.routingMistakes,
+    brokenRules: ([2, 3] as const).filter((r) => s.ruleBreaks.some((b) => b.rule === r)),
+    firstWrongLine: wrong ? { index, line: s.receipt[index]!, rule, nodeLine: nodeReceipt[index]! } : null,
+    nodeReceipt,
+  };
 }
