@@ -249,6 +249,15 @@ test('the Replay explains a rule 2 break', async ({ page }) => {
   const rule = page.locator('.replay-note.rule-2');
   await expect(rule).toHaveText(/Node ran D's Promise.then callback while the nextTick queue still had E's/);
   await expect(page.locator('.replay-note.node-line')).toContainText('Real Node printed E here, not D.');
+  // Forward stops at the pause too: it lands on the wrong line, and the next Forward goes on.
+  await page.locator('#replay-back').click();
+  await expect(page.locator('#replay-step')).toContainText('Step 11 of 18');
+  await expect(rule).toHaveCount(0);
+  await page.locator('#replay-next').click();
+  await expect(page.locator('#replay-step')).toHaveText('Step 12 of 18: Cooked line 4: printed D');
+  await expect(rule).toBeVisible();
+  await page.locator('#replay-next').click();
+  await expect(page.locator('#replay-step')).toContainText('Step 13 of 18');
   // X-ray off: kitchen words.
   await page.keyboard.press('KeyX');
   await expect(rule.locator('.say-kitchen')).toHaveText(/^You cooked D while the orange rail still had E\./);
