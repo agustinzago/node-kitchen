@@ -13,11 +13,11 @@ The seed comes from the URL when present; otherwise it's random.
 
 **Blocked by:** 02 (Sim plays the boss Shift by the Kitchen rules), 03 (Toon box kitchen you can walk around)
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] The five slice Ticket kinds (grey, orange, purple, blue, amber) each have a distinct colour and a distinct silhouette
-- [ ] Walking never advances the simulator's clock; only simulator actions do
-- [ ] A wrong-station put-down shows a refusal and the Ticket stays held
-- [ ] A URL seed forces the Oven race either way
-- [ ] Two Playwright runs, one per forced race order, play the whole Shift by keyboard and assert that the Receipt overlay reads `A F E D B C` and `A F E D C B` respectively
-- [ ] The check command passes
+- [x] The five slice Ticket kinds (grey, orange, purple, blue, amber) each have a distinct colour and a distinct silhouette
+- [x] Walking never advances the simulator's clock; only simulator actions do
+- [x] A wrong-station put-down shows a refusal and the Ticket stays held
+- [x] A URL seed forces the Oven race either way
+- [x] Two Playwright runs, one per forced race order, play the whole Shift by keyboard and assert that the Receipt overlay reads `A F E D B C` and `A F E D C B` respectively
+- [x] The check command passes

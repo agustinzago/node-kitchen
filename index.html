@@ -5,11 +5,47 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Node Kitchen</title>
     <style>
-      body { margin: 0; overflow: hidden; background: #f3e6d0; }
+      body { margin: 0; overflow: hidden; background: #f3e6d0; font: 15px/1.4 system-ui, sans-serif; color: #2a2118; }
       canvas { display: block; }
+      .panel, #hud, #toast, #closed, .ticket-label { position: fixed; pointer-events: none; }
+      .panel { background: #fffaf0; border: 2px solid #2a2118; border-radius: 6px; box-shadow: 3px 3px 0 #2a211833; }
+      .panel h2 { margin: 0; padding: 6px 10px; font-size: 13px; border-bottom: 2px solid #2a2118; }
+      .panel ol { margin: 0; padding: 6px 10px 8px 2.6em; font: 14px/1.6 ui-monospace, Menlo, Consolas, monospace; }
+      #wall { top: 16px; left: 16px; transform: rotate(-1deg); }
+      #wall h2 { font-family: ui-monospace, Menlo, Consolas, monospace; }
+      #program li { white-space: pre; padding: 0 6px; border-radius: 3px; }
+      #program li.cooking { background: #ffe066; outline: 2px solid #e04a2f; }
+      #receipt-panel { right: 16px; bottom: 16px; min-width: 160px; background: #1f1b16; color: #f3e6d0; border-color: #1f1b16; }
+      #receipt-panel h2 { border-color: #f3e6d044; }
+      #receipt { list-style: none; padding-left: 10px; }
+      #receipt:empty::before { content: '…'; opacity: 0.5; }
+      #hud { top: 16px; right: 16px; display: flex; gap: 14px; background: #fffaf0d9; padding: 6px 12px; border-radius: 6px; }
+      #toast { top: 64px; left: 50%; transform: translateX(-50%); padding: 8px 14px; border-radius: 6px; background: #2a2118; color: #fffaf0; opacity: 0; transition: opacity 0.4s 1.6s; }
+      #toast.show { opacity: 1; transition: none; }
+      #toast.buzz { background: #c62828; }
+      #closed { inset: 0; display: none; place-items: center; }
+      #closed span { padding: 18px 40px; font: 700 48px/1 system-ui, sans-serif; letter-spacing: 0.1em; background: #c62828; color: #fffaf0; border: 4px solid #fffaf0; border-radius: 10px; transform: rotate(-4deg); }
+      .closed #closed { display: grid; }
+      .ticket-label { transform: translate(-50%, -100%); padding: 1px 6px; border-radius: 4px; background: #fffaf0e6; font: 600 13px ui-monospace, Menlo, Consolas, monospace; white-space: nowrap; }
     </style>
   </head>
   <body>
+    <div id="labels"></div>
+    <section id="wall" class="panel" aria-label="Program">
+      <h2 id="program-name"></h2>
+      <ol id="program"></ol>
+    </section>
+    <div id="hud">
+      <span>Lap <b id="lap"></b></span>
+      <span>Holding <b id="held"></b></span>
+      <span>Routing mistakes <b id="mistakes"></b></span>
+    </div>
+    <section id="receipt-panel" class="panel" aria-label="Receipt">
+      <h2>Receipt</h2>
+      <ol id="receipt"></ol>
+    </section>
+    <div id="toast" role="status"></div>
+    <div id="closed"><span>CLOSED</span></div>
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>
