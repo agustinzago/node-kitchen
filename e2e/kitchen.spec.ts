@@ -126,7 +126,7 @@ for (const { seed, ovenReady, expected, prediction } of [
 
     // A wrong station buzzes, and the Ticket stays held.
     await use(page, 'checkCounter');
-    await expect(toast).toHaveText(/Buzz! The Check counter refuses B/);
+    await expect(toast).toHaveText('Buzz! The Check counter refuses B: blue Tickets wait at the Oven (timers phase).');
     await expect(toast).toHaveClass(/buzz/);
     await expect(page.locator('#mistakes')).toHaveText('1');
     await expect(holding).toHaveText('B (blue)');

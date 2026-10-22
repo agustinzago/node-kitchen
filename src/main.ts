@@ -1,6 +1,7 @@
 /// <reference types="vite/client" />
 // Wires the kitchen together: the Shift, the "use" key, the scene, the overlay and walking.
 import level from './shifts/opening-boss/level.ts';
+import { el } from './el.ts';
 import { preService } from './preservice.ts';
 import { KIND_COLOURS, STATION_NAMES } from './legend.ts';
 import { kindOf, placeStationLabels, placeTickets, say, shake, updateOverlay } from './overlay.ts';
@@ -38,8 +39,11 @@ function use() {
   shift = result.shift;
   for (const event of result.events) {
     if (event.type === 'ticketRefused') {
-      const right = STATION_NAMES[waitsAt(shift, event.ticket)][0];
-      say(`Buzz! The ${name} refuses ${event.ticket}: ${KIND_COLOURS[kindOf(event.ticket)].word} Tickets wait at the ${right}.`, station);
+      // The hint names the right station, and its real Node name while X-ray is on.
+      const [kitchen, node] = STATION_NAMES[waitsAt(shift, event.ticket)];
+      const word = KIND_COLOURS[kindOf(event.ticket)].word;
+      const hint = `Buzz! The ${name} refuses ${event.ticket}: ${word} Tickets wait at the ${kitchen}`;
+      say([hint, el('span', { className: 'xray', textContent: ` (${node})` }), '.'], station);
     } else if (event.type === 'actionRefused') {
       const notYet = event.reason === 'nothingReady' && waitingTickets(shift).oven.length && station === 'oven';
       say(notYet ? 'The Oven isn’t ready yet: come back next Lap.' : REFUSALS[event.reason], station);

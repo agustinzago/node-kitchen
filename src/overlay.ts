@@ -128,9 +128,9 @@ export function updateOverlay(shift: Shift) {
 }
 
 let buzzing: { station?: StationName; until: number } = { until: 0 };
-export function say(message: string, buzz?: StationName) {
+export function say(message: string | (string | Node)[], buzz?: StationName) {
   const toast = $('toast');
-  toast.textContent = message;
+  toast.replaceChildren(...(Array.isArray(message) ? message : [message]));
   toast.classList.toggle('buzz', buzz !== undefined);
   toast.classList.remove('show');
   void toast.offsetWidth; // restart the fade
