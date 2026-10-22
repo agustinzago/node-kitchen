@@ -1,312 +1,18 @@
 /// <reference types="vite/client" />
-import * as THREE from 'three/webgpu';
-import { toonOutlinePass } from 'three/tsl';
+// Wires the kitchen together: the Shift, the "use" key, the scene, the overlay and walking.
 import level from './shifts/opening-boss/level.ts';
-import program from './shifts/opening-boss/program.cjs?raw';
-import { showResults } from './results.ts';
 import { preService } from './preservice.ts';
-import { KIND_COLOURS, STATION_NAMES, type Kind, type StationName } from './legend.ts';
-import {
-  act,
-  dishOnStove,
-  hasEnded,
-  heldTicket,
-  lap,
-  predict,
-  receipt,
-  routingMistakes,
-  startShift,
-  waitingTickets,
-  waitsAt,
-  type Action,
-  type Dish,
-  type ShiftEvent,
-  type Station as SimStation,
-} from './sim/shift.ts';
-
-// The kitchen as a tile grid, seen from above with row 0 at the back.
-// The Ring runs clockwise: Oven → Pending shelf → Poll pass → Check counter → Close hatch.
-const LAYOUT = [
-  '..O...P..',
-  '.........',
-  '.........',
-  'H..oSp..L',
-  '.........',
-  '.........',
-  '....C....',
-];
-const CODES: Record<string, StationName> = {
-  S: 'stove',
-  o: 'orangeRail',
-  p: 'purpleRail',
-  O: 'oven',
-  P: 'pendingShelf',
-  L: 'pollPass',
-  C: 'checkCounter',
-  H: 'closeHatch',
-};
-const GREYED = '#b4b0aa';
-const STATIONS: Record<StationName, { color: string; height: number }> = {
-  stove: { color: '#3d3f46', height: 0.9 },
-  orangeRail: { color: KIND_COLOURS.nextTick.colour, height: 0.6 },
-  purpleRail: { color: KIND_COLOURS.microtask.colour, height: 0.6 },
-  oven: { color: KIND_COLOURS.timer.colour, height: 1.1 },
-  pendingShelf: { color: GREYED, height: 0.6 },
-  pollPass: { color: GREYED, height: 0.6 },
-  checkCounter: { color: KIND_COLOURS.immediate.colour, height: 0.9 },
-  closeHatch: { color: GREYED, height: 0.6 },
-};
-const RING: StationName[] = ['oven', 'pendingShelf', 'pollPass', 'checkCounter', 'closeHatch'];
-const SPEED = 4; // tiles per second
-const CHEF_HALF = 0.3; // half the Head Chef's footprint, in tiles
-
-const cellAt = (x: number, z: number) => LAYOUT[z]?.[x];
-const stationAt = (x: number, z: number): StationName | undefined => CODES[cellAt(x, z) ?? ''];
-const solid = (x: number, z: number) => cellAt(x, z) !== '.'; // off the grid is solid too
-const blocked = (x: number, z: number) =>
-  [-CHEF_HALF, CHEF_HALF].some((dx) =>
-    [-CHEF_HALF, CHEF_HALF].some((dz) => solid(Math.round(x + dx), Math.round(z + dz))),
-  );
-const find = (station: StationName) => {
-  const z = LAYOUT.findIndex((row) => [...row].some((code) => CODES[code] === station));
-  return new THREE.Vector3([...LAYOUT[z]!].findIndex((code) => CODES[code] === station), 0, z);
-};
-
-// Three light bands for the toon look.
-const bands = new THREE.DataTexture(new Uint8Array([90, 170, 255]), 3, 1, THREE.RedFormat);
-bands.minFilter = bands.magFilter = THREE.NearestFilter;
-bands.needsUpdate = true;
-const toon = (color: string) => new THREE.MeshToonNodeMaterial({ color, gradientMap: bands });
-
-const scene = new THREE.Scene();
-scene.background = new THREE.Color('#f3e6d0');
-scene.add(new THREE.AmbientLight('#ffffff', 1.2));
-const sun = new THREE.DirectionalLight('#ffffff', 2.5);
-sun.position.set(-3, 10, 6);
-scene.add(sun);
-
-const box = (w: number, h: number, d: number, material: THREE.Material) => {
-  const mesh = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), material);
-  mesh.position.y = h / 2;
-  return mesh;
-};
-
-// Floor tiles in a checker pattern, so the grid reads at a glance.
-const floor = [toon('#e9d8bb'), toon('#dcc7a5')];
-const stationMeshes = new Map<StationName, THREE.Mesh>();
-LAYOUT.forEach((row, z) =>
-  [...row].forEach((code, x) => {
-    const tile = box(0.98, 0.1, 0.98, floor[(x + z) % 2]!);
-    tile.position.set(x, -0.1, z);
-    scene.add(tile);
-    const station = CODES[code];
-    if (!station) return;
-    const mesh = box(0.9, STATIONS[station].height, 0.9, toon(STATIONS[station].color));
-    mesh.position.x = x;
-    mesh.position.z = z;
-    stationMeshes.set(station, mesh);
-    scene.add(mesh);
-  }),
-);
-
-// The Stove's one hotplate: one Dish cooks at a time.
-const hotplate = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.28, 0.06, 24), toon('#e04a2f'));
-hotplate.position.copy(find('stove')).setY(STATIONS.stove.height + 0.03);
-scene.add(hotplate);
-
-// Conveyor arrows on the floor between consecutive Ring Counters, pointing clockwise.
-const arrowMaterial = toon('#6b5a45');
-RING.forEach((station, i) => {
-  const from = find(station);
-  const to = find(RING[(i + 1) % RING.length]!);
-  const arrow = new THREE.Mesh(new THREE.ConeGeometry(0.2, 0.8, 3), arrowMaterial);
-  arrow.position.lerpVectors(from, to, 0.5);
-  arrow.scale.z = 0.1; // flat on the floor
-  arrow.rotation.set(Math.PI / 2, 0, 0, 'YXZ'); // tip along +z
-  arrow.rotation.y = Math.atan2(to.x - from.x, to.z - from.z);
-  scene.add(arrow);
-});
-
-// The Head Chef: a body box and a hat box. Its front is +z before rotation.
-const chef = new THREE.Group();
-chef.add(box(0.6, 0.8, 0.6, toon('#f7f4ee')));
-const hat = box(0.4, 0.35, 0.4, toon('#ffffff'));
-hat.position.y = 0.95;
-const nose = box(0.12, 0.12, 0.12, toon('#f0b48a'));
-nose.position.set(0, 0.55, 0.32);
-chef.add(hat, nose);
-chef.position.set(4, 0, 5);
-const facing = { x: 0, z: -1 };
-const faced = { x: 4, z: 4 };
-scene.add(chef);
-
-// The faced cell pulses; it isn't toon, so it gets no outline.
-const glow = new THREE.MeshBasicNodeMaterial({ color: '#fff36b', transparent: true, depthWrite: false });
-const highlight = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), glow);
-scene.add(highlight);
-
-// Each Ticket kind has its own colour and its own silhouette, so kinds never rely on colour alone.
-const SHAPES: Record<Kind, THREE.BufferGeometry> = {
-  sync: new THREE.BoxGeometry(0.42, 0.18, 0.42), // slab
-  nextTick: new THREE.ConeGeometry(0.24, 0.42, 3), // pyramid
-  microtask: new THREE.OctahedronGeometry(0.24), // diamond
-  timer: new THREE.CylinderGeometry(0.22, 0.22, 0.14, 24), // round puck
-  immediate: new THREE.TorusGeometry(0.16, 0.07, 10, 24), // ring
-};
-const kindOf = (dish: Dish): Kind => (dish === 'opening' ? 'sync' : level.tickets[dish]!.kind);
-
-const center = new THREE.Vector3((LAYOUT[0]!.length - 1) / 2, 0, (LAYOUT.length - 1) / 2);
-const camera = new THREE.OrthographicCamera();
-camera.position.copy(center).add(new THREE.Vector3(6, 10, 10));
-camera.lookAt(center);
-
-const renderer = new THREE.WebGPURenderer({
-  antialias: true,
-  forceWebGL: new URLSearchParams(location.search).has('webgl'),
-});
-renderer.setPixelRatio(devicePixelRatio);
-document.body.prepend(renderer.domElement);
-const pipeline = new THREE.RenderPipeline(renderer);
-pipeline.outputNode = toonOutlinePass(scene, camera, new THREE.Color('#2a2118'), 0.006);
-
-function resize() {
-  const aspect = innerWidth / innerHeight;
-  const half = Math.max(5.2, 7.2 / aspect); // keep the whole kitchen on screen
-  Object.assign(camera, { left: -half * aspect, right: half * aspect, top: half, bottom: -half });
-  camera.updateProjectionMatrix();
-  renderer.setSize(innerWidth, innerHeight);
-}
-addEventListener('resize', resize);
-resize();
+import { KIND_COLOURS, STATION_NAMES } from './legend.ts';
+import { kindOf, placeStationLabels, placeTickets, say, shake, updateOverlay } from './overlay.ts';
+import { glow, pipeline, renderer, stationAt } from './scene.ts';
+import { act, heldTicket, predict, startShift, waitingTickets, waitsAt, type Action, type ShiftEvent } from './sim/shift.ts';
+import { chef, walk } from './walk.ts';
 
 // The seed comes from the URL when present (?seed=1 makes the Oven ready on Lap 1, ?seed=0 doesn't).
 const seedParam = Number.parseInt(new URLSearchParams(location.search).get('seed') ?? '', 10);
 let shift = startShift(level, Number.isNaN(seedParam) ? Math.floor(Math.random() * 2 ** 31) : seedParam);
 // The card and the predict board hold the keyboard until service starts; then the Prediction is locked in.
 void preService(level).then((prediction) => prediction && (shift = predict(shift, prediction)));
-
-// The HTML overlay: the program on the wall, the HUD, the Receipt and the Ticket labels.
-const $ = (id: string) => document.getElementById(id)!;
-$('program-name').textContent = level.program;
-const wallLines = program
-  .trimEnd()
-  .split('\n')
-  .map((text) => {
-    const li = document.createElement('li');
-    li.textContent = text;
-    $('program').append(li);
-    return li;
-  });
-
-const ticketMeshes = new Map<Dish, THREE.Mesh>();
-const ticketLabels = new Map<Dish, HTMLElement>();
-function ticketMesh(dish: Dish) {
-  let mesh = ticketMeshes.get(dish);
-  if (!mesh) {
-    const kind = kindOf(dish);
-    mesh = new THREE.Mesh(SHAPES[kind], toon(KIND_COLOURS[kind].colour));
-    scene.add(mesh);
-    ticketMeshes.set(dish, mesh);
-    const label = document.createElement('span');
-    label.className = 'ticket-label';
-    label.dataset.ticket = dish;
-    $('labels').append(label);
-    ticketLabels.set(dish, label);
-  }
-  return mesh;
-}
-
-/** Puts every Ticket where the simulator says it is: on the Stove, in hand, or waiting. */
-function placeTickets() {
-  const shown = new Map<Dish, { at: THREE.Vector3; text: string }>();
-  const stove = dishOnStove(shift);
-  if (stove) {
-    shown.set(stove.dish, {
-      at: find('stove').setY(STATIONS.stove.height + 0.2),
-      text: stove.dish === 'opening' ? 'Opening dish' : stove.dish,
-    });
-  }
-  const held = heldTicket(shift);
-  if (held) {
-    const at = chef.position.clone().add(new THREE.Vector3(facing.x * 0.45, 0.85, facing.z * 0.45));
-    shown.set(held, { at, text: held });
-  }
-  for (const [station, tickets] of Object.entries(waitingTickets(shift))) {
-    tickets.forEach(({ ticket, countdown }, i) => {
-      const at = find(station as SimStation).setY(STATIONS[station as SimStation].height + 0.2 + i * 0.4);
-      const text = station === 'oven' ? `${ticket} ${countdown ? `⏲ ${countdown}` : '✓ ready'}` : ticket;
-      shown.set(ticket, { at, text });
-    });
-  }
-  for (const [dish, mesh] of ticketMeshes) {
-    if (!shown.has(dish)) mesh.visible = false;
-  }
-  for (const [dish, { at, text }] of shown) {
-    const mesh = ticketMesh(dish);
-    mesh.visible = true;
-    mesh.position.copy(at);
-    mesh.rotation.y = performance.now() / 900;
-    const label = ticketLabels.get(dish)!;
-    label.textContent = text;
-  }
-  for (const [dish, label] of ticketLabels) {
-    label.hidden = !shown.has(dish);
-    if (label.hidden) continue;
-    pin(label, ticketMeshes.get(dish)!.position.clone().add(new THREE.Vector3(0, 0.35, 0)));
-  }
-}
-
-/** Places an overlay label at a 3D point's spot on screen. */
-function pin(label: HTMLElement, at: THREE.Vector3) {
-  const ndc = at.project(camera);
-  label.style.left = `${((ndc.x + 1) / 2) * innerWidth}px`;
-  label.style.top = `${((1 - ndc.y) / 2) * innerHeight}px`;
-}
-
-// Station labels: the kitchen name, plus the real Node name while X-ray is on (X toggles it).
-const stationLabels = Object.entries(STATION_NAMES).map(([station, [kitchen, node]]) => {
-  const label = document.createElement('span');
-  label.className = 'station-label';
-  label.dataset.station = station;
-  label.append(kitchen, Object.assign(document.createElement('b'), { className: 'xray', textContent: node }));
-  $('labels').append(label);
-  // Under the station's front edge; the Rails' labels sit on their outer sides, clear of the Stove's.
-  const side = station === 'orangeRail' ? -1 : station === 'purpleRail' ? 1 : 0;
-  return { label, at: find(station as StationName).add(new THREE.Vector3(side * 0.45, 0, 0.45)) };
-});
-const placeStationLabels = () => stationLabels.forEach(({ label, at }) => pin(label, at.clone()));
-addEventListener('keydown', (e) => {
-  if (e.code === 'KeyX' && !e.repeat) document.body.classList.toggle('xray-off');
-});
-
-function updateOverlay() {
-  const stove = dishOnStove(shift);
-  wallLines.forEach((li, i) => li.classList.toggle('cooking', stove?.sourceLine === i + 1));
-  const held = heldTicket(shift);
-  $('lap').textContent = String(lap(shift));
-  $('held').textContent = held ? `${held} (${KIND_COLOURS[kindOf(held)].word})` : 'nothing';
-  $('mistakes').textContent = String(routingMistakes(shift));
-  $('receipt').replaceChildren(
-    ...receipt(shift).map((line) => Object.assign(document.createElement('li'), { textContent: line })),
-  );
-  if (hasEnded(shift)) {
-    document.body.classList.add('closed');
-    sun.intensity = 0.9;
-    scene.background = new THREE.Color('#5a4d40');
-    showResults(shift);
-  }
-}
-
-let buzzing: { station?: StationName; until: number } = { until: 0 };
-function say(message: string, buzz?: StationName) {
-  const toast = $('toast');
-  toast.textContent = message;
-  toast.classList.toggle('buzz', buzz !== undefined);
-  toast.classList.remove('show');
-  void toast.offsetWidth; // restart the fade
-  toast.classList.add('show');
-  if (buzz !== undefined) buzzing = { station: buzz, until: performance.now() + 400 };
-}
 
 const REFUSALS: Record<Extract<ShiftEvent, { type: 'actionRefused' }>['reason'], string> = {
   rule1: 'One Dish at a time: finish the Dish on the Stove first.',
@@ -319,7 +25,7 @@ const REFUSALS: Record<Extract<ShiftEvent, { type: 'actionRefused' }>['reason'],
 
 /** "Use" on the faced cell: cook at the Stove, put down the held Ticket, or pick one up. */
 function use() {
-  const station = stationAt(faced.x, faced.z);
+  const station = stationAt(chef.faced.x, chef.faced.z);
   if (!station) return;
   const name = STATION_NAMES[station][0];
   let action: Action;
@@ -343,64 +49,18 @@ function use() {
       say('No Tickets left and nothing cooking: the restaurant closes.');
     }
   }
-  updateOverlay();
+  updateOverlay(shift);
 }
 
-const KEYS: Record<string, [number, number]> = {
-  ArrowUp: [0, -1], KeyW: [0, -1],
-  ArrowDown: [0, 1], KeyS: [0, 1],
-  ArrowLeft: [-1, 0], KeyA: [-1, 0],
-  ArrowRight: [1, 0], KeyD: [1, 0],
-};
 const USE_KEYS = ['Space', 'KeyE', 'Enter'];
-const held = new Set<string>();
 addEventListener('keydown', (e) => {
-  if (USE_KEYS.includes(e.code)) {
-    e.preventDefault();
-    if (!e.repeat) use();
-    return;
-  }
-  if (!KEYS[e.code]) return;
+  if (!USE_KEYS.includes(e.code)) return;
   e.preventDefault();
-  held.add(e.code);
+  if (!e.repeat) use();
 });
-addEventListener('keyup', (e) => held.delete(e.code));
-addEventListener('blur', () => held.clear());
-
-// Walking is the renderer's alone: it never reaches the simulator, so it costs no time.
-function walk(dt: number) {
-  let dx = 0;
-  let dz = 0;
-  for (const code of held) {
-    dx += KEYS[code]![0];
-    dz += KEYS[code]![1];
-  }
-  if (dx || dz) {
-    const step = (SPEED * dt) / Math.hypot(dx, dz);
-    const p = chef.position;
-    if (!blocked(p.x + dx * step, p.z)) p.x += dx * step;
-    if (!blocked(p.x, p.z + dz * step)) p.z += dz * step;
-    Object.assign(facing, Math.abs(dx) >= Math.abs(dz) ? { x: Math.sign(dx), z: 0 } : { x: 0, z: Math.sign(dz) });
-    chef.rotation.y = Math.atan2(facing.x, facing.z);
-  }
-  faced.x = Math.round(chef.position.x) + facing.x;
-  faced.z = Math.round(chef.position.z) + facing.z;
-  const station = stationAt(faced.x, faced.z);
-  highlight.visible = cellAt(faced.x, faced.z) !== undefined;
-  const height = (station ? STATIONS[station].height : 0) + 0.06;
-  highlight.scale.set(1.04, height, 1.04);
-  highlight.position.set(faced.x, height / 2 - 0.02, faced.z);
-}
-
-/** A refused station shakes for a moment. */
-function shake(now: number) {
-  for (const [station, mesh] of stationMeshes) {
-    mesh.position.x = find(station).x + (station === buzzing.station && now < buzzing.until ? Math.sin(now / 18) * 0.06 : 0);
-  }
-}
 
 await renderer.init();
-updateOverlay();
+updateOverlay(shift);
 
 declare global {
   interface Window {
@@ -410,8 +70,8 @@ declare global {
 if (import.meta.env.MODE === 'e2e') {
   window.__kitchen = {
     backend: (renderer.backend as { isWebGPUBackend?: boolean }).isWebGPUBackend ? 'WebGPU' : 'WebGL 2',
-    chef: () => ({ x: chef.position.x, z: chef.position.z }),
-    facing: () => ({ ...faced }),
+    chef: () => ({ x: chef.body.position.x, z: chef.body.position.z }),
+    facing: () => ({ ...chef.faced }),
   };
 }
 
@@ -420,7 +80,7 @@ renderer.setAnimationLoop((now) => {
   walk(Math.min((now - last) / 1000, 0.1));
   last = now;
   shake(now);
-  placeTickets();
+  placeTickets(shift);
   placeStationLabels();
   glow.opacity = 0.45 + 0.2 * Math.sin(now / 150);
   pipeline.render();
