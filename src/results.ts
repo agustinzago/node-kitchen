@@ -7,6 +7,12 @@ const RULES = {
   3: 'Rule 3 broken: then walk the Ring in order.',
 };
 
+const BONUS: Record<string, string> = {
+  true: '★ Bonus star: your Prediction matches real Node',
+  false: '☆ No bonus star: your Prediction differs from real Node',
+  null: '☆ No bonus star: you skipped the Prediction',
+};
+
 function el<K extends keyof HTMLElementTagNameMap>(tag: K, props: Partial<HTMLElementTagNameMap[K]> = {}, ...children: (Node | string)[]) {
   const node = Object.assign(document.createElement(tag), props);
   node.append(...children);
@@ -15,7 +21,7 @@ function el<K extends keyof HTMLElementTagNameMap>(tag: K, props: Partial<HTMLEl
 
 export function showResults(shift: Shift) {
   if (document.getElementById('results')) return;
-  const { stars, routingMistakes, brokenRules, nodeReceipt } = judge(shift);
+  const { accepted, predictionAccepted, routingMistakes, brokenRules, nodeReceipt } = judge(shift);
   const mine = receipt(shift);
 
   const rows = Array.from({ length: Math.max(mine.length, nodeReceipt.length) }, (_, i) =>
@@ -36,7 +42,8 @@ export function showResults(shift: Shift) {
       'section',
       { id: 'results', className: 'panel', ariaLabel: 'Results' },
       el('h2', { textContent: 'Results' }),
-      el('p', { id: 'stars', textContent: stars ? '★ Star 1: your Receipt matches real Node' : '☆ No star: your Receipt differs from real Node' }),
+      el('p', { id: 'stars', textContent: accepted ? '★ Star 1: your Receipt matches real Node' : '☆ No star: your Receipt differs from real Node' }),
+      el('p', { id: 'bonus-star', textContent: BONUS[String(predictionAccepted)] }),
       el(
         'table',
         {},

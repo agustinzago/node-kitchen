@@ -4,6 +4,7 @@ import { toonOutlinePass } from 'three/tsl';
 import level from './shifts/opening-boss/level.ts';
 import program from './shifts/opening-boss/program.cjs?raw';
 import { showResults } from './results.ts';
+import { preService } from './preservice.ts';
 import type { TicketId, TicketKind } from './sim/level.ts';
 import {
   act,
@@ -11,6 +12,7 @@ import {
   hasEnded,
   heldTicket,
   lap,
+  predict,
   receipt,
   routingMistakes,
   startShift,
@@ -184,6 +186,8 @@ resize();
 // The seed comes from the URL when present (?seed=1 makes the Oven ready on Lap 1, ?seed=0 doesn't).
 const seedParam = Number.parseInt(new URLSearchParams(location.search).get('seed') ?? '', 10);
 let shift = startShift(level, Number.isNaN(seedParam) ? Math.floor(Math.random() * 2 ** 31) : seedParam);
+// The card and the predict board hold the keyboard until service starts; then the Prediction is locked in.
+void preService(level).then((prediction) => prediction && (shift = predict(shift, prediction)));
 
 // The HTML overlay: the program on the wall, the HUD, the Receipt and the Ticket labels.
 const $ = (id: string) => document.getElementById(id)!;

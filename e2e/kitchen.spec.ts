@@ -8,13 +8,45 @@ async function hold(page: Page, key: string, ms: number) {
   await page.keyboard.up(key);
 }
 
+/** Gets past the pre-service card (its button has focus) and skips the predict board. */
+async function skipPrediction(page: Page) {
+  await page.keyboard.press('Enter');
+  await page.locator('#skip-predict').press('Enter');
+  await expect(page.locator('#predict')).toHaveCount(0);
+}
+
+/** Fills in the Prediction by keyboard alone: ↑/↓ picks a card, Shift+↑ moves it into its slot. */
+async function predictByKeyboard(page: Page, order: string[]) {
+  await expect(page.locator('#card')).toContainText('One Dish at a time, to the end.');
+  await page.keyboard.press('Enter');
+  const cards = page.locator('#predict-cards li');
+  let focus = 0;
+  for (const [slot, line] of order.entries()) {
+    const from = (await cards.allTextContents()).indexOf(line);
+    for (; focus < from; focus++) await page.keyboard.press('ArrowDown');
+    for (; focus > from; focus--) await page.keyboard.press('ArrowUp');
+    for (; focus > slot; focus--) await page.keyboard.press('Shift+ArrowUp');
+  }
+  await expect(cards).toHaveText(order);
+  for (; focus < order.length - 1; focus++) await page.keyboard.press('ArrowDown');
+  await page.keyboard.press('Tab');
+  await expect(page.locator('#lock-in')).toBeFocused();
+  await page.keyboard.press('Enter');
+  await expect(page.locator('#predict')).toHaveCount(0);
+}
+
 for (const url of ['/', '/?webgl']) {
   test(`the Head Chef walks with the keyboard and stops at the Stove (${url})`, async ({ page }) => {
     await page.goto(url);
     await page.waitForFunction(() => window.__kitchen);
     if (url.includes('webgl')) expect(await page.evaluate(() => window.__kitchen!.backend)).toBe('WebGL 2');
 
+    // The kitchen gets no keys until service starts.
     const start = await chef(page);
+    await hold(page, 'ArrowLeft', 300);
+    expect(await chef(page)).toEqual(start);
+    await skipPrediction(page);
+
     await hold(page, 'ArrowLeft', 300);
     const moved = await chef(page);
     expect(moved.x).toBeLessThan(start.x - 0.2);
@@ -65,9 +97,10 @@ async function use(page: Page, station: keyof typeof CELLS) {
 
 const ticketLabel = (page: Page, ticket: string) => page.locator(`.ticket-label[data-ticket="${ticket}"]`);
 
-for (const { seed, ovenReady, expected } of [
-  { seed: 1, ovenReady: true, expected: ['A', 'F', 'E', 'D', 'B', 'C'] },
-  { seed: 0, ovenReady: false, expected: ['A', 'F', 'E', 'D', 'C', 'B'] },
+// The seed-0 run predicts the other race order: either one earns the bonus star.
+for (const { seed, ovenReady, expected, prediction } of [
+  { seed: 1, ovenReady: true, expected: ['A', 'F', 'E', 'D', 'B', 'C'], prediction: null },
+  { seed: 0, ovenReady: false, expected: ['A', 'F', 'E', 'D', 'C', 'B'], prediction: ['A', 'F', 'E', 'D', 'B', 'C'] },
 ]) {
   test(`plays the boss Shift by keyboard, Oven ${ovenReady ? 'ready' : 'not ready'} on Lap 1 (seed ${seed})`, async ({
     page,
@@ -75,6 +108,9 @@ for (const { seed, ovenReady, expected } of [
     await page.goto(`/?seed=${seed}`);
     await page.waitForFunction(() => window.__kitchen);
     await expect(page.locator('#program-name')).toHaveText('program.cjs');
+    await expect(page.locator('#rules')).toContainText('Then walk the Ring.');
+    if (prediction) await predictByKeyboard(page, prediction);
+    else await skipPrediction(page);
     const cooking = page.locator('#program li.cooking');
     const holding = page.locator('#held');
     const receipt = page.locator('#receipt li');
@@ -146,6 +182,8 @@ for (const { seed, ovenReady, expected } of [
 
     // The results screen: star 1, both Receipts side by side with no differences.
     await expect(page.locator('#stars')).toHaveText(/★ Star 1/);
+    await expect(page.locator('#bonus-star')).toHaveText(prediction ? /★ Bonus star/ : /skipped the Prediction/);
+    await expect(page.locator('#rules')).toBeVisible();
     await expect(page.locator('#compare tr')).toHaveText(expected.map((line) => line + line));
     await expect(page.locator('#compare tr.differs')).toHaveCount(0);
     await expect(page.locator('#broken-rules')).toHaveText('No Kitchen rules broken.');
@@ -162,6 +200,7 @@ for (const { seed, ovenReady, expected } of [
 test('X-ray is on at the start and X toggles it', async ({ page }) => {
   await page.goto('/');
   await page.waitForFunction(() => window.__kitchen);
+  await skipPrediction(page);
   const oven = page.locator('.station-label[data-station="O"]');
   await expect(page.locator('.station-label')).toHaveCount(8);
   await expect(oven.getByText('timers phase')).toBeVisible();
