@@ -143,5 +143,18 @@ for (const { seed, ovenReady, expected } of [
 
     await expect(receipt).toHaveText(expected);
     await expect(page.locator('#closed')).toBeVisible();
+
+    // The results screen: star 1, both Receipts side by side with no differences.
+    await expect(page.locator('#stars')).toHaveText(/★ Star 1/);
+    await expect(page.locator('#compare tr')).toHaveText(expected.map((line) => line + line));
+    await expect(page.locator('#compare tr.differs')).toHaveCount(0);
+    await expect(page.locator('#broken-rules')).toHaveText('No Kitchen rules broken.');
+    await expect(page.locator('#result-mistakes')).toHaveText('1');
+
+    // Retry restarts the Shift; the URL keeps the seed fixed.
+    await page.keyboard.press('Enter');
+    await expect(page.locator('#results')).toHaveCount(0);
+    await expect(receipt).toHaveCount(0);
+    expect(page.url()).toContain(`seed=${seed}`);
   });
 }
